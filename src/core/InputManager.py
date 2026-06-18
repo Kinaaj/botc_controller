@@ -69,13 +69,17 @@ class InputManager:
         # Spouštíme scény asynchronně jako samostatné Tasky.
         # Díky tomu se okamžitě vracíme k naslouchání a můžeme reagovat na další klávesy.
         if key == 'n':
-            asyncio.create_task(self.scene_manager.trigger_scene_night())
+            print("N")
+            # asyncio.create_task(self.scene_manager.trigger_scene_night())
         elif key == 'd':
-            asyncio.create_task(self.scene_manager.trigger_scene_day())
+            print("D")
+            # asyncio.create_task(self.scene_manager.trigger_scene_day())
         elif key == 'p':
-            asyncio.create_task(self.scene_manager.trigger_scene_execution())
+            print("P")
+            # asyncio.create_task(self.scene_manager.trigger_scene_execution())
         elif key == 's':
+            print("S")
             # Příklad pro rychlý "jump scare" zvukový efekt bez změny světel
-            asyncio.create_task(self.scene_manager.trigger_sfx_scream())
+            # asyncio.create_task(self.scene_manager.trigger_sfx_scream())
         else:
             print(f"[Input] Klávesa '{key}' nemá přiřazenou žádnou akci.")
