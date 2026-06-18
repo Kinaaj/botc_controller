@@ -1,6 +1,6 @@
 import yaml
-from .core.InputManager import InputManager
-from .core.SceneManager import SceneManager
+from core.InputManager import InputManager
+from core.SceneManager import SceneManager
 
 
 async def main():
@@ -16,4 +16,6 @@ async def main():
     await input_manager.start_listening()
     
     
-    
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(main())
