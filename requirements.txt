@@ -1,0 +1,10 @@
+# Knihovna pro přehrávání zvuku v headless režimu
+# (Na Linuxu vyžaduje také: sudo apt install libsdl2-mixer-2.0-0)
+pygame-ce>=2.5.0
+
+# Knihovna pro přímé čtení z hardwarové klávesnice v Linuxu
+# (Funguje pouze na Linux/Ubuntu/Raspberry Pi, vyžaduje práva root/sudo)
+evdev>=1.7.0
+
+# Knihovna pro čtení konfiguračního souboru config.yaml
+pyyaml>=6.0.1
