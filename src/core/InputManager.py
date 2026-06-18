@@ -59,7 +59,7 @@ class InputManager:
         except Exception as e:
             print(f"[Input] Neočekávaná chyba: {e}")
 
-   async def _dispatch_key(self, key):
+    async def _dispatch_key(self, key):
         """Rozcestník: Na základě klávesy spustí příslušnou scénu."""
         if key == 'q':
             print("[Input] Ukončuji aplikaci...")
