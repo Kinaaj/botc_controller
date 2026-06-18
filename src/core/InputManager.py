@@ -59,27 +59,37 @@ class InputManager:
         except Exception as e:
             print(f"[Input] Neočekávaná chyba: {e}")
 
-    async def _dispatch_key(self, key):
+   async def _dispatch_key(self, key):
         """Rozcestník: Na základě klávesy spustí příslušnou scénu."""
         if key == 'q':
             print("[Input] Ukončuji aplikaci...")
+            # Zavoláme stop pro případ, že zrovna hrál zvuk nebo blikala světla
+            asyncio.create_task(self.scene_manager.trigger_stop())
+            await asyncio.sleep(0.5)  # Krátká pauza na zpracování zhasnutí před exitem
             self.running = False
             return
 
         # Spouštíme scény asynchronně jako samostatné Tasky.
         # Díky tomu se okamžitě vracíme k naslouchání a můžeme reagovat na další klávesy.
         if key == 'n':
-            print("N")
-            # asyncio.create_task(self.scene_manager.trigger_scene_night())
+            print("[Input] Stisknuto N -> Aktivuji NOC")
+            asyncio.create_task(self.scene_manager.trigger_scene_night())
+            
         elif key == 'd':
-            print("D")
-            # asyncio.create_task(self.scene_manager.trigger_scene_day())
+            print("[Input] Stisknuto D -> Aktivuji DEN")
+            asyncio.create_task(self.scene_manager.trigger_scene_day())
+            
         elif key == 'p':
-            print("P")
-            # asyncio.create_task(self.scene_manager.trigger_scene_execution())
+            print("[Input] Stisknuto P -> Aktivuji POPRAVU")
+            asyncio.create_task(self.scene_manager.trigger_scene_execution())
+            
+        elif key == 'b':
+            print("[Input] Stisknuto B -> Aktivuji BLESK")
+            asyncio.create_task(self.scene_manager.trigger_sfx_thunder())
+            
         elif key == 's':
-            print("S")
-            # Příklad pro rychlý "jump scare" zvukový efekt bez změny světel
-            # asyncio.create_task(self.scene_manager.trigger_sfx_scream())
+            print("[Input] Stisknuto S -> STOP zvuku a reset světel")
+            asyncio.create_task(self.scene_manager.trigger_stop())
+            
         else:
             print(f"[Input] Klávesa '{key}' nemá přiřazenou žádnou akci.")
