@@ -61,6 +61,15 @@ class YeelightController:
         # Yeelight vyžaduje barvu jako jedno číslo: (R * 65536) + (G * 256) + B
         rgb_value = (r << 16) + (g << 8) + b
         await self.send_command("set_rgb", [rgb_value, "smooth", duration])
+    
+    async def flash_lightning(self):
+        """
+        Vytvoří efekt dvojitého blesku pomocí color flow.
+        Po skončení se světlo automaticky vrátí do původního stavu.
+        """
+        # count = 3, action = 0 (recover), flow_expression
+        params = [3, 0, "50,2,6500,100,100,7,0,0,50,2,6500,100"]
+        await self.send_command("start_cf", params)
 
     async def close(self):
         """Uvítáme při ukončení programu."""
