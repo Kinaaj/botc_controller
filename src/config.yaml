@@ -1,13 +1,13 @@
 # --- NASTAVENÍ SÍTĚ ---
 network:
   yeelights:
-    - ip: "192.168.1.101"
+    - ip: "192.168.10.112"
       name: "Žárovka 1"
-    - ip: "192.168.1.102"
+    - ip: "192.168.10.113"
       name: "Žárovka 2"
-    - ip: "192.168.1.103"
+    - ip: "192.168.10.114"
       name: "Žárovka 3"
-    - ip: "192.168.1.104"
+    - ip: "192.168.10.115"
       name: "Žárovka 4"
 
 # --- NASTAVENÍ ZVUKU ---

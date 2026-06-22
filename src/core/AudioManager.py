@@ -32,6 +32,8 @@ class AudioManager:
         self.cached_sfx = {}
         self.cached_ambient = None
 
+        self.active_sfx_channels = {}
+
         # Řekneme Pygame, aby při konci písničky na kanálu "music" vyvolal naši událost
         pygame.mixer.music.set_endevent(MUSIC_END_EVENT)
         
@@ -149,7 +151,7 @@ class AudioManager:
                 
             category, filename = sfx_info
             sound = self.load_sfx(category, filename)
-            
+            volné zvukové kanály
             if sound:
                 self.sequence_channel.play(sound)
                 # Čekáme, dokud zvuk dohraje
@@ -186,3 +188,50 @@ class AudioManager:
         pygame.mixer.stop()                   # Shodí všechny ostatní SFX kanály
         
         print("[Audio] Všechny zvuky byly kompletně zastaveny a resetovány.")
+
+
+    def play_tracked_sfx(self, category, filename, tag=None, volume=1.0):
+        """
+        Spustí dlouhý efekt a uloží si jeho kanál pod zadaným tagem.
+        :param tag: Identifikátor pro pozdější zastavení. Pokud není zadán, použije se filename.
+        """
+        effect_tag = tag if tag else filename
+
+        # Pokud už pod tímto tagem něco hraje, pro jistotu to ukončíme, 
+        # abychom neměli dva stejné efekty hrající přes sebe.
+        self.stop_tracked_sfx(effect_tag, fade_ms=0)
+
+        sound = self.load_sfx(category, filename)
+        if sound:
+            free_channel = pygame.mixer.find_channel()
+            
+            if free_channel:
+                sound.set_volume(volume)
+                free_channel.play(sound)
+                
+                # Uložíme kanál pod naším tagem
+                self.active_sfx_channels[effect_tag] = free_channel
+                print(f"[Audio] Spuštěn sledovaný efekt: {effect_tag}")
+                return True
+            else:
+                print("[Audio] VAROVÁNÍ: Nejsou volné zvukové kanály pro SFX!")
+        
+        return False
+    def stop_tracked_sfx(self, tag, fade_ms=500):
+        """
+        Zastaví konkrétní efekt podle jeho tagu, pokud hraje.
+        """
+        if tag in self.active_sfx_channels:
+            channel = self.active_sfx_channels[tag]
+            
+            # Zastavíme, pouze pokud kanál skutečně hraje
+            if channel.get_busy():
+                print(f"[Audio] Zastavuji efekt: {tag}")
+                channel.fadeout(fade_ms)
+            
+            # Smažeme stopu ze slovníku
+            del self.active_sfx_channels[tag]
+            return True
+            
+        # Vracíme False, pokud tag nebyl nalezen (nic se nezastavovalo)
+        return False
