@@ -1,7 +1,7 @@
 # --- NASTAVENÍ SÍTĚ ---
 network:
   yeelights:
-    - ip: "192.168.10.112"
+    - ip: "192.168.10.111"
       name: "Žárovka 1"
     - ip: "192.168.10.113"
       name: "Žárovka 2"

@@ -179,5 +179,13 @@ class InputManager:
             print("[Input] Stisknuto S -> STOP zvuku a reset světel")
             asyncio.create_task(self.scene_manager.trigger_stop())
 
+        elif key == "o":
+            print("[Input] Stisknuto O -> Zapinam zarovky")
+            asyncio.create_task(self.scene_manager.trigger_start())
+        elif key == "f":
+            print("[Input] Stisknuto F -> Vypinam zarovky")
+            asyncio.create_task(self.scene_manager.trigger_stop())
+        
+
         else:
             print(f"[Input] Klávesa '{key}' nemá přiřazenou žádnou akci.")

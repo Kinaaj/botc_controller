@@ -109,9 +109,11 @@ class SceneManager:
         return
 
     async def trigger_stop(self):
+        await self._broadcast("turn_off")
         return
 
     async def trigger_start(self):
+        await self._broadcast("turn_on")
         return
 
     # OLD SCENES:
