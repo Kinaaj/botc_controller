@@ -2,7 +2,10 @@ from enum import Enum
 
 from .AudioManager import AudioManager
 from .BulbGroup import BulbGroup
+from .GameState import GameState
 from .SceneRunner import SceneContext, SceneRunner
+
+VOLUME_STEP = 0.05
 
 
 class Scene(Enum):
@@ -16,8 +19,9 @@ class Scene(Enum):
     GOOD_WON = 7
 
 class SceneManager:
-    def __init__(self, bulbs_config, audio_manager: AudioManager):
+    def __init__(self, bulbs_config, audio_manager: AudioManager, game_state: GameState):
         self.audio = audio_manager
+        self.state = game_state
         self.current_scene = Scene.NONE
         self.last_scene = Scene.NONE
         self.runner = SceneRunner()
@@ -92,10 +96,12 @@ class SceneManager:
         return
 
     def trigger_volume_up(self):
-        return
+        self.state.volume += VOLUME_STEP
+        self.audio.set_volume(self.state.volume)
 
     def trigger_volume_down(self):
-        return
+        self.state.volume -= VOLUME_STEP
+        self.audio.set_volume(self.state.volume)
 
     def trigger_stop(self):
         self.runner.run(self._scene_stop(SceneContext()))

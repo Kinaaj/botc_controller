@@ -190,5 +190,14 @@ class InputManager:
             print("[Input] Stisknuto T -> Demo scéna (Fáze 1)")
             self.scene_manager.trigger_scene_demo()
 
+        # Volume is a modifier: it never goes through SceneRunner, so it can't
+        # interrupt a running scene. "equal"/"minus" are evdev's names for the
+        # main-row +/- keys; pynput (Windows debug fallback) reports the raw char.
+        elif key in ("=", "equal", "kpplus"):
+            self.scene_manager.trigger_volume_up()
+
+        elif key in ("-", "minus", "kpminus"):
+            self.scene_manager.trigger_volume_down()
+
         else:
             print(f"[Input] Klávesa '{key}' nemá přiřazenou žádnou akci.")

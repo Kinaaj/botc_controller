@@ -51,6 +51,8 @@ class AudioManager:
 
         self.active_sfx_channels = {}
 
+        self.set_volume(self.current_volume)
+
         # Řekneme Pygame, aby při konci písničky na kanálu "music" vyvolal naši událost
         pygame.mixer.music.set_endevent(MUSIC_END_EVENT)
 
@@ -150,6 +152,13 @@ class AudioManager:
                 free_channel.play(sound)
             else:
                 print("[Audio] VAROVÁNÍ: Nejsou volné zvukové kanály pro SFX!")
+
+    def set_volume(self, level):
+        """Sets master volume (0.0-1.0) for BGM and the two reserved channels."""
+        self.current_volume = max(0.0, min(1.0, level))
+        pygame.mixer.music.set_volume(self.current_volume)
+        self.sequence_channel.set_volume(self.current_volume)
+        self.ambient_channel.set_volume(self.current_volume)
 
     # --- HLAVNÍ ATMOSFÉRICKÉ SCÉNY ---
 
