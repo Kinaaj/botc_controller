@@ -1,7 +1,13 @@
 import asyncio
 
-import evdev
-from evdev import ecodes
+try:
+    import evdev
+    from evdev import ecodes
+
+    HAS_EVDEV = True
+except ImportError:
+    HAS_EVDEV = False
+    print("Warning: evdev not found. Controller inputs will not work on this OS.")
 
 
 class InputManager:
@@ -11,6 +17,10 @@ class InputManager:
 
     def _find_keyboard(self):
         """Vyhledá připojenou klávesnici mezi systémovými zařízeními."""
+        if not HAS_EVDEV:
+            print("Warning: evdev not found. Controller inputs will not work on this OS.")
+            return None
+
         devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
 
         # 1. Pokus: Hledáme zařízení, které má v názvu explicitně "keyboard"
