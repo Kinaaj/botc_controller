@@ -51,6 +51,10 @@ async def main():
     scene_manager = SceneManager(bulbs_config, audio_manager, game_state, normal_color)
     input_manager = InputManager(scene_manager, keyboard_select=args.keyboard_select)
 
+    # Report unreachable bulbs now, at boot, rather than failing silently the
+    # first time a scene tries to use one. The app keeps running either way.
+    await scene_manager.lights.connect_all()
+
     await input_manager.start_listening()
 
 

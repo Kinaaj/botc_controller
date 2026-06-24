@@ -1,13 +1,13 @@
 import asyncio
 
-from .YeelightControllerLib import YeelightControllerLib
+from .Bulb import Bulb
 
 
 class BulbGroup:
     """Drives all bulbs in lockstep and exposes scene-level verbs instead of raw method names."""
 
     def __init__(self, bulbs_config):
-        self.bulbs = [YeelightControllerLib(b["ip"], b["name"]) for b in bulbs_config]
+        self.bulbs = [Bulb(b["ip"], b["name"]) for b in bulbs_config]
 
     async def _broadcast(self, method_name, *args, **kwargs):
         tasks = [
@@ -16,10 +16,18 @@ class BulbGroup:
             if hasattr(bulb, method_name)
         ]
         if tasks:
-            await asyncio.gather(*tasks)
+            return await asyncio.gather(*tasks)
+        return []
 
     async def connect_all(self):
-        await self._broadcast("connect")
+        # The one place reachability errors are worth surfacing: at boot, so a
+        # powered-off bulb is visible immediately instead of failing silently
+        # the first time a scene tries to use it.
+        results = await self._broadcast("connect")
+        for bulb, reachable in zip(self.bulbs, results):
+            status = "OK" if reachable else "NEDOSTUPNÁ"
+            print(f"[BulbGroup] {bulb.name} ({bulb.ip}): {status}")
+        return results
 
     async def close_all(self):
         await self._broadcast("close")

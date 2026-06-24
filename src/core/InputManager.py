@@ -53,6 +53,18 @@ class InputManager:
         self.scene_manager: SceneManager = scene_manager
         self.running = True
         self.keyboard_select = keyboard_select
+        self._validate_bindings()
+
+    def _validate_bindings(self):
+        # Catches a typo'd or renamed trigger_* method at startup instead of
+        # the first time someone happens to press that key.
+        method_names = {name for _, name in self.SCENE_KEYS.values()}
+        method_names |= set(self.MODIFIER_KEYS.values())
+        missing = sorted(name for name in method_names if not hasattr(self.scene_manager, name))
+        if missing:
+            raise AttributeError(
+                f"SceneManager is missing methods referenced in the key table: {missing}"
+            )
 
     def _select_keyboard_interactive(self):
         """Vypíše dostupná evdev zařízení a nechá uživatele vybrat jedno číslem."""

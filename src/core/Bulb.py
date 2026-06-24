@@ -1,27 +1,26 @@
 import asyncio
 
-from yeelight import Bulb, Flow
+from yeelight import Bulb as YeelightBulb, Flow
 from yeelight.flow import SleepTransition, TemperatureTransition
 from yeelight.main import BulbException
 
 
-class YeelightControllerLib:
-    """
-    Alternative to YeelightController, built on the python-yeelight library
-    (https://gitlab.com/stavros/python-yeelight) instead of the hand-rolled
-    TCP/JSON protocol. Mirrors YeelightController's public API so it can be
-    used as a drop-in replacement in SceneManager.
-    """
-
+class Bulb:
     def __init__(self, ip, name, port=55443):
         self.ip = ip
         self.name = name
         self.port = port
-        self.bulb = Bulb(ip, port=port, auto_on=False)
+        self.bulb = YeelightBulb(ip, port=port, auto_on=False)
 
     async def connect(self):
-        # No-op: python-yeelight opens its socket lazily as needed.
-        return
+        # Querying properties is the only command that requires an actual
+        # round-trip, so it doubles as a reachability probe at startup.
+        try:
+            await asyncio.to_thread(self.bulb.get_properties)
+            return True
+        except (BulbException, OSError) as e:
+            print(f"[{self.name}] Communication error with bulb {self.ip}: {e}")
+            return False
 
     async def _run(self, func, *args, **kwargs):
         # Runs the library's blocking call off the event loop.
