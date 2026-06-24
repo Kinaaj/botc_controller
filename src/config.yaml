@@ -14,3 +14,11 @@ network:
 audio:
   bgm_folder: "audio/bgm/"
   sfx_folder: "audio/sfx/"
+  volume: 0.5
+
+bulbs:
+  evil_color:
+    r: 0
+    g: 0
+    b: 0
+
