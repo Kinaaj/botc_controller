@@ -1,7 +1,6 @@
 import asyncio
 
-from yeelight import Bulb as YeelightBulb, Flow
-from yeelight.flow import SleepTransition, TemperatureTransition
+from yeelight import Bulb as YeelightBulb
 from yeelight.main import BulbException
 
 
@@ -45,11 +44,13 @@ class Bulb:
         await self._run(self.bulb.set_color_temp, kelvin, duration=duration)
 
     async def flash_lightning(self):
-        # Flow.actions.recover relies on the bulb's own built-in "restore
+        # action 0 (recover) relies on the bulb's own built-in "restore
         # previous state" behavior, which is noticeably slow on this
         # hardware. Instead: snapshot the state ourselves, flash with
-        # action=stay (so the bulb just holds the last flash frame instead
-        # of trying to recover on its own), then restore the snapshot with
+        # action 1 (stay - python-yeelight's Flow.actions.stay, sent raw
+        # here to keep the rest of the original expression byte-exact:
+        # Flow's SleepTransition encodes its ignored fields as "1,2"
+        # instead of the original's "0,0"), then restore the snapshot with
         # our own quick, explicit transition.
         try:
             before = await asyncio.to_thread(
@@ -59,19 +60,8 @@ class Bulb:
             print(f"[{self.name}] Communication error with bulb {self.ip}: {e}")
             return
 
-        # count=1: one pass through these 3 transitions (flash 50ms, pause
-        # 100ms, flash 50ms). Flow.count loops the *whole* transition list,
-        # so count=3 here would actually flash three times, not once.
-        flow = Flow(
-            count=1,
-            action=Flow.actions.stay,
-            transitions=[
-                TemperatureTransition(6500, duration=50, brightness=100),
-                SleepTransition(duration=100),
-                TemperatureTransition(6500, duration=50, brightness=100),
-            ],
-        )
-        await self._run(self.bulb.start_flow, flow)
+        params = [3, 1, "50,2,6500,100,100,7,0,0,50,2,6500,100"]
+        await self._run(self.bulb.send_command, "start_cf", params)
         await asyncio.sleep(0.25)  # let the ~200ms flow actually finish before restoring
         await self._restore(before)
 
