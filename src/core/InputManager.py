@@ -9,6 +9,13 @@ except ImportError:
     HAS_EVDEV = False
     print("Warning: evdev not found. Controller inputs will not work on this OS.")
 
+try:
+    from pynput import keyboard as pynput_keyboard
+
+    HAS_PYNPUT = True
+except ImportError:
+    HAS_PYNPUT = False
+
 
 class InputManager:
     def __init__(self, scene_manager):
@@ -39,6 +46,10 @@ class InputManager:
 
     async def start_listening(self):
         """Spustí asynchronní smyčku pro odchytávání stisků kláves."""
+        if not HAS_EVDEV and HAS_PYNPUT:
+            await self._start_listening_pynput()
+            return
+
         keyboard = self._find_keyboard()
 
         if not keyboard:
@@ -78,6 +89,35 @@ class InputManager:
             )
         except Exception as e:
             print(f"[Input] Neočekávaná chyba: {e}")
+
+    async def _start_listening_pynput(self):
+        """
+        Windows keyboard listener
+        """
+        print("[Input] evdev nedostupný - používám pynput (pouze pro debug na Windows).")
+        print("[Input] Naslouchám... Stiskni 'Q' pro ukončení.")
+
+        loop = asyncio.get_running_loop()
+
+        def on_press(key):
+            try:
+                char = key.char
+            except AttributeError:
+                return  # Speciální klávesy (shift, ctrl...) ignorujeme
+
+            if char:
+                loop.call_soon_threadsafe(
+                    lambda: asyncio.create_task(self._dispatch_key(char.lower()))
+                )
+
+        listener = pynput_keyboard.Listener(on_press=on_press)
+        listener.start()
+
+        try:
+            while self.running:
+                await asyncio.sleep(0.1)
+        finally:
+            listener.stop()
 
     async def _dispatch_key(self, key):
         """Rozcestník: Na základě klávesy spustí příslušnou scénu."""
