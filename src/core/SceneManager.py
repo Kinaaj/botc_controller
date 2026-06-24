@@ -51,10 +51,10 @@ class SceneManager:
     async def trigger_scene_drawing(self):
         if self.current_scene != Scene.DRAWING:
             self.audio.play_tracked_sfx("drawing", "drawing.wav", tag="drawing")
-            self._broadcast("drawing_effect")
+            await self._broadcast("drawing_effect")
         else:
             self.audio.stop_tracked_sfx("drawing", "drawing.wav", tag="drawing")
-            self._set_default_lights()
+            await self._set_default_lights()
             self.current_scene = Scene.NONE
         return
 
@@ -65,6 +65,7 @@ class SceneManager:
 
     async def trigger_scene_day(self):
         # TODO: self._broadcast
+
         return
 
     async def trigger_scene_evening(self):
