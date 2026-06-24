@@ -43,7 +43,10 @@ class InputManager:
 
         if not keyboard:
             print("[Input] KRITICKÁ CHYBA: Nepodařilo se najít žádnou klávesnici!")
-            print("Zkontroluj, zda skript spouštíš jako ROOT (sudo python3 main.py).")
+            print(
+                "Zkontroluj práva ke čtení z /dev/input - přidej uživatele do skupiny "
+                "'input' (sudo usermod -aG input $USER) a přihlas se znovu."
+            )
             return
 
         print(
@@ -69,7 +72,9 @@ class InputManager:
 
         except PermissionError:
             print(
-                "[Input] CHYBA: Nedostatečná práva pro čtení z klávesnice. Spusť program přes 'sudo'."
+                "[Input] CHYBA: Nedostatečná práva pro čtení z klávesnice. "
+                "Přidej uživatele do skupiny 'input' (sudo usermod -aG input $USER) "
+                "a přihlas se znovu."
             )
         except Exception as e:
             print(f"[Input] Neočekávaná chyba: {e}")
