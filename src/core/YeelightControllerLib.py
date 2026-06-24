@@ -17,7 +17,7 @@ class YeelightControllerLib:
         self.ip = ip
         self.name = name
         self.port = port
-        self.bulb = Bulb(ip, port=port, effect="smooth", duration=500, auto_on=True)
+        self.bulb = Bulb(ip, port=port, auto_on=False)
 
     async def connect(self):
         # No-op: python-yeelight opens its socket lazily as needed.
