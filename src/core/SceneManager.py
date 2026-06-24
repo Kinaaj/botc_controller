@@ -77,7 +77,7 @@ class SceneManager:
 
     async def _scene_evening(self, ctx: SceneContext):
         warm_kelvin = 2700
-        fade_up_seconds = 4
+        fade_up_seconds = 8
         await self.lights.fade_off(seconds=1)
         await ctx.sleep(1)
         await self.lights.fade_up_to_temperature(warm_kelvin, seconds=fade_up_seconds)
