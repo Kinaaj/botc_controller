@@ -157,19 +157,19 @@ class InputManager:
             self.running = False
             return
 
-        # b, s, o, f, t go through SceneRunner and are sync now, so they're called
-        # directly. n, d, p aren't converted yet, so they still need create_task.
+        # All trigger_* methods are sync now: they hand off to SceneRunner (or,
+        # for modifiers, run immediately) and return right away.
         if key == "n":
             print("[Input] Stisknuto N -> Aktivuji NOC")
-            asyncio.create_task(self.scene_manager.trigger_scene_night())
+            self.scene_manager.trigger_scene_night()
 
         elif key == "d":
             print("[Input] Stisknuto D -> Aktivuji DEN")
-            asyncio.create_task(self.scene_manager.trigger_scene_day())
+            self.scene_manager.trigger_scene_day()
 
         elif key == "p":
             print("[Input] Stisknuto P -> Aktivuji POPRAVU")
-            asyncio.create_task(self.scene_manager.trigger_scene_execution())
+            self.scene_manager.trigger_effect_execution()
 
         elif key == "b":
             print("[Input] Stisknuto B -> Aktivuji BLESK")
@@ -185,10 +185,6 @@ class InputManager:
         elif key == "f":
             print("[Input] Stisknuto F -> Vypinam zarovky")
             self.scene_manager.trigger_stop()
-
-        elif key == "t":
-            print("[Input] Stisknuto T -> Demo scéna (Fáze 1)")
-            self.scene_manager.trigger_scene_demo()
 
         # Volume is a modifier: it never goes through SceneRunner, so it can't
         # interrupt a running scene. "equal"/"minus" are evdev's names for the

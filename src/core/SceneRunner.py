@@ -22,3 +22,8 @@ class SceneRunner:
 class SceneContext:
     async def sleep(self, seconds):
         await asyncio.sleep(seconds)
+
+    async def wait_forever(self):
+        # Parks a scene that represents an ongoing phase (e.g. Night's playlist
+        # + ambient) so it stays the active task until SceneRunner cancels it.
+        await asyncio.Event().wait()

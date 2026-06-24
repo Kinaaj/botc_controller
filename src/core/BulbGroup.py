@@ -34,7 +34,11 @@ class BulbGroup:
         await self._broadcast("turn_off", duration=int(seconds * 1000))
 
     async def fade_up(self, seconds=2.0, brightness=100):
-        await self._broadcast("turn_on")
+        # Yeelight accepts property changes while off (stored, not shown), so
+        # staging brightness 1 first means turn_on reveals near-dark rather
+        # than snapping to the bulb's last brightness before this ramps up.
+        await self._broadcast("set_brightness", 1)
+        await self._broadcast("turn_on", duration=int(seconds * 1000))
         await self._broadcast("set_brightness", brightness, duration=int(seconds * 1000))
 
     async def fade_to_rgb(self, r, g, b, seconds=0.5):

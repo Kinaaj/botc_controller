@@ -44,8 +44,11 @@ async def main():
         default_volume=config['audio'].get('volume', 0.5),
     )
 
+    normal_color_cfg = config['bulbs']['normal_color']
+    normal_color = (normal_color_cfg['r'], normal_color_cfg['g'], normal_color_cfg['b'])
+
     audio_manager = AudioManager(bgm_folder, sfx_folder, volume=game_state.volume)
-    scene_manager = SceneManager(bulbs_config, audio_manager, game_state)
+    scene_manager = SceneManager(bulbs_config, audio_manager, game_state, normal_color)
     input_manager = InputManager(scene_manager, keyboard_select=args.keyboard_select)
 
     await input_manager.start_listening()

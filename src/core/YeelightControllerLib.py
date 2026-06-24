@@ -60,10 +60,6 @@ class YeelightControllerLib:
         )
         await self._run(self.bulb.start_flow, flow)
 
-    async def drawing_effect(self):
-        # TODO
-        return
-
     async def close(self):
         # No-op: python-yeelight doesn't hold a persistent connection to close.
         return

@@ -17,6 +17,10 @@ audio:
   volume: 0.5
 
 bulbs:
+  normal_color:
+    r: 255
+    g: 255
+    b: 200
   evil_colors:
     - r: 255
       g: 0

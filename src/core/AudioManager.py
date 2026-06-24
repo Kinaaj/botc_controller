@@ -219,7 +219,7 @@ class AudioManager:
 
         print("[Audio] Všechny zvuky byly kompletně zastaveny a resetovány.")
 
-    def play_tracked_sfx(self, category, filename, tag=None, volume=1.0):
+    def play_tracked_sfx(self, category, filename, tag=None, volume=1.0, loops=0):
         """
         Spustí dlouhý efekt a uloží si jeho kanál pod zadaným tagem.
         :param tag: Identifikátor pro pozdější zastavení. Pokud není zadán, použije se filename.
@@ -236,7 +236,7 @@ class AudioManager:
 
             if free_channel:
                 sound.set_volume(volume)
-                free_channel.play(sound)
+                free_channel.play(sound, loops=loops)
 
                 # Uložíme kanál pod naším tagem
                 self.active_sfx_channels[effect_tag] = free_channel
