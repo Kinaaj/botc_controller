@@ -30,17 +30,20 @@ class YeelightControllerLib:
         except (BulbException, OSError) as e:
             print(f"[{self.name}] Communication error with bulb {self.ip}: {e}")
 
-    async def turn_on(self):
-        await self._run(self.bulb.turn_on, duration=500)
+    async def turn_on(self, duration=500):
+        await self._run(self.bulb.turn_on, duration=duration)
 
-    async def turn_off(self):
-        await self._run(self.bulb.turn_off, duration=500)
+    async def turn_off(self, duration=500):
+        await self._run(self.bulb.turn_off, duration=duration)
 
-    async def set_brightness(self, level):
-        await self._run(self.bulb.set_brightness, level, duration=500)
+    async def set_brightness(self, level, duration=500):
+        await self._run(self.bulb.set_brightness, level, duration=duration)
 
     async def set_rgb(self, r, g, b, duration=500):
         await self._run(self.bulb.set_rgb, r, g, b, duration=duration)
+
+    async def set_temperature(self, kelvin, duration=500):
+        await self._run(self.bulb.set_color_temp, kelvin, duration=duration)
 
     async def flash_lightning(self):
         # Equivalent to the original start_cf expression

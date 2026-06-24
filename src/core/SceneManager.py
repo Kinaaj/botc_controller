@@ -1,9 +1,8 @@
-import asyncio
 from enum import Enum
 
 from .AudioManager import AudioManager
+from .BulbGroup import BulbGroup
 from .SceneRunner import SceneContext, SceneRunner
-from .YeelightControllerLib import YeelightControllerLib
 
 
 class Scene(Enum):
@@ -22,26 +21,12 @@ class SceneManager:
         self.current_scene = Scene.NONE
         self.last_scene = Scene.NONE
         self.runner = SceneRunner()
-
-        # Inicializace 4 controllerů pro žárovky z YAML konfigurace
-        self.bulbs = [YeelightControllerLib(b["ip"], b["name"]) for b in bulbs_config]
-        print(f"[Scene] SceneManager připraven s {len(self.bulbs)} žárovkami.")
+        self.lights = BulbGroup(bulbs_config)
+        print(f"[Scene] SceneManager připraven s {len(self.lights.bulbs)} žárovkami.")
 
     async def _broadcast(self, method_name, *args, **kwargs):
-        """
-        Pomocná metoda, která vezme název metody z YeelightControlleru
-        (např. 'set_rgb') a spustí ji na všech žárovkách ZÁROVEŇ.
-        """
-        tasks = []
-        for bulb in self.bulbs:
-            # Získáme konkrétní funkci z objektu žárovky podle názvu
-            func = getattr(bulb, method_name, None)
-            if func:
-                tasks.append(func(*args, **kwargs))
-
-        # Odeslání všech příkazů do sítě paralelně
-        if tasks:
-            await asyncio.gather(*tasks)
+        # Forwards to BulbGroup; kept for scenes not yet migrated to lights.* verbs.
+        await self.lights._broadcast(method_name, *args, **kwargs)
 
     async def _set_default_lights(self):
         # TODO
@@ -86,7 +71,7 @@ class SceneManager:
 
     async def _scene_thunder(self, ctx: SceneContext):
         self.audio.play_sfx("lightning", "01.wav")
-        await self._broadcast("flash_lightning")
+        await self.lights.flash_lightning()
 
     async def trigger_effect_execution(self):
         return
@@ -116,19 +101,19 @@ class SceneManager:
         self.runner.run(self._scene_stop(SceneContext()))
 
     async def _scene_stop(self, ctx: SceneContext):
-        await self._broadcast("turn_off")
+        await self.lights.turn_off()
 
     def trigger_start(self):
         self.runner.run(self._scene_start(SceneContext()))
 
     async def _scene_start(self, ctx: SceneContext):
-        await self._broadcast("turn_on")
+        await self.lights.turn_on()
 
     # Temporary proof scene for Phase 1, removed in Phase 4.
     def trigger_scene_demo(self):
         self.runner.run(self._scene_demo(SceneContext()))
 
     async def _scene_demo(self, ctx: SceneContext):
-        await self._broadcast("set_rgb", 255, 0, 0)
+        await self.lights.fade_to_rgb(255, 0, 0)
         await ctx.sleep(4)
-        await self._broadcast("set_rgb", 0, 255, 0)
+        await self.lights.fade_to_rgb(0, 255, 0)
