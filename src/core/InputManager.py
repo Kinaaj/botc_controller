@@ -1,5 +1,7 @@
 import asyncio
 
+from .SceneManager import SceneManager
+
 try:
     import evdev
     from evdev import ecodes
@@ -18,8 +20,8 @@ except ImportError:
 
 
 class InputManager:
-    def __init__(self, scene_manager, keyboard_select="auto"):
-        self.scene_manager = scene_manager
+    def __init__(self, scene_manager: SceneManager, keyboard_select="auto"):
+        self.scene_manager: SceneManager = scene_manager
         self.running = True
         self.keyboard_select = keyboard_select
 

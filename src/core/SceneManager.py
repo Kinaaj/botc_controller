@@ -80,6 +80,10 @@ class SceneManager:
     def trigger_effect_jail(self):
         return
 
+    async def trigger_sfx_thunder(self):
+        self.audio.play_sfx("lightning", "01.wav", volume=1.0)
+        await self._broadcast("flash_lightning")
+
     async def trigger_effect_execution(self):
         return
 
