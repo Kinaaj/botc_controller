@@ -10,3 +10,5 @@ pynput>=1.7.6; sys_platform == 'win32'
 
 # Knihovna pro čtení konfiguračního souboru config.yaml
 pyyaml>=6.0.1
+
+yeelight>=0.7.14

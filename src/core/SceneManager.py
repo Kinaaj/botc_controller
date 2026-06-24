@@ -2,7 +2,7 @@ import asyncio
 from enum import Enum
 
 from .AudioManager import AudioManager
-from .YeelightController import YeelightController
+from .YeelightControllerLib import YeelightControllerLib
 
 
 class Scene(Enum):
@@ -23,7 +23,7 @@ class SceneManager:
         self.last_scene = Scene.NONE
 
         # Inicializace 4 controllerů pro žárovky z YAML konfigurace
-        self.bulbs = [YeelightController(b["ip"], b["name"]) for b in bulbs_config]
+        self.bulbs = [YeelightControllerLib(b["ip"], b["name"]) for b in bulbs_config]
         print(f"[Scene] SceneManager připraven s {len(self.bulbs)} žárovkami.")
 
     async def _broadcast(self, method_name, *args, **kwargs):
