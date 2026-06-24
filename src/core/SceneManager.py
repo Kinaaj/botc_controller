@@ -54,14 +54,12 @@ class SceneManager:
             await self.lights.fade_off(seconds=fade_off_seconds)
             await ctx.sleep(fade_off_seconds)  # let bulbs actually go dark first
 
-            r, g, b = self.state.evil_color
-            await self.lights.fade_to_rgb(r, g, b)  # staged while off, shown on fade_up
-
             self.audio.play_sfx("ambient", "gong.wav")
             self.audio.play_permanent_ambient("ambient", "night_crickets_1h.mp3", volume=0.3)
             await ctx.sleep(3)  # blackout pause
 
-            await self.lights.fade_up(seconds=fade_up_seconds)
+            r, g, b = self.state.evil_color
+            await self.lights.fade_up_to_rgb(r, g, b, seconds=fade_up_seconds)
             await self.audio.start_night_sequence([], "night")
             await ctx.wait_forever()  # Night stays active until another scene interrupts it
         finally:
@@ -81,9 +79,8 @@ class SceneManager:
         warm_kelvin = 2700
         fade_up_seconds = 4
         await self.lights.fade_off(seconds=1)
-        await ctx.sleep(1)  # let it settle before staging the warm temperature
-        await self.lights.set_temperature(warm_kelvin)  # staged while off, shown on fade_up
-        await self.lights.fade_up(seconds=fade_up_seconds)
+        await ctx.sleep(1)
+        await self.lights.fade_up_to_temperature(warm_kelvin, seconds=fade_up_seconds)
 
     def trigger_effect_clock(self):
         return

@@ -20,7 +20,7 @@ bulbs:
   normal_color:
     r: 255
     g: 255
-    b: 200
+    b: 255
   evil_colors:
     - r: 255
       g: 0
