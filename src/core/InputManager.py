@@ -20,6 +20,35 @@ except ImportError:
 
 
 class InputManager:
+    # Scene keys go through SceneManager's runner-backed trigger_* methods (so
+    # pressing one cancels-and-replaces whatever scene is currently active).
+    # Real keypad codes aren't known yet (no keypad_mapping_spec.md in this
+    # repo) - only the letters already used for manual testing are bound here.
+    # New scenes (Drawing, Evening, wins, evil-color picker, toggles) stay
+    # unbound until the physical layout is known; add them here when it is.
+    SCENE_KEYS = {
+        "n": ("Aktivuji NOC", "trigger_scene_night"),
+        "d": ("Aktivuji DEN", "trigger_scene_day"),
+        "p": ("Aktivuji POPRAVU", "trigger_effect_execution"),
+        "b": ("Aktivuji BLESK", "trigger_sfx_thunder"),
+        "s": ("STOP zvuku a reset světel", "trigger_stop"),
+        "o": ("Zapínám žárovky", "trigger_start"),
+        "f": ("Vypínám žárovky", "trigger_stop"),
+    }
+
+    # Modifier keys call their SceneManager method directly and never touch
+    # SceneRunner, so they can't interrupt whatever scene is active.
+    # "equal"/"minus"/"kp..." are evdev's names for the real keypad's keys;
+    # the bare "="/"-" cover pynput's raw-char reporting (Windows debug only).
+    MODIFIER_KEYS = {
+        "=": "trigger_volume_up",
+        "equal": "trigger_volume_up",
+        "kpplus": "trigger_volume_up",
+        "-": "trigger_volume_down",
+        "minus": "trigger_volume_down",
+        "kpminus": "trigger_volume_down",
+    }
+
     def __init__(self, scene_manager: SceneManager, keyboard_select="auto"):
         self.scene_manager: SceneManager = scene_manager
         self.running = True
@@ -148,7 +177,7 @@ class InputManager:
             listener.stop()
 
     async def _dispatch_key(self, key):
-        """Rozcestník: Na základě klávesy spustí příslušnou scénu."""
+        """Rozcestník: na základě klávesy zavolá příslušnou metodu SceneManageru."""
         if key == "q":
             print("[Input] Ukončuji aplikaci...")
             # Zavoláme stop pro případ, že zrovna hrál zvuk nebo blikala světla
@@ -157,43 +186,13 @@ class InputManager:
             self.running = False
             return
 
-        # All trigger_* methods are sync now: they hand off to SceneRunner (or,
-        # for modifiers, run immediately) and return right away.
-        if key == "n":
-            print("[Input] Stisknuto N -> Aktivuji NOC")
-            self.scene_manager.trigger_scene_night()
+        if key in self.SCENE_KEYS:
+            label, method_name = self.SCENE_KEYS[key]
+            print(f"[Input] Stisknuto '{key}' -> {label}")
+            getattr(self.scene_manager, method_name)()
 
-        elif key == "d":
-            print("[Input] Stisknuto D -> Aktivuji DEN")
-            self.scene_manager.trigger_scene_day()
-
-        elif key == "p":
-            print("[Input] Stisknuto P -> Aktivuji POPRAVU")
-            self.scene_manager.trigger_effect_execution()
-
-        elif key == "b":
-            print("[Input] Stisknuto B -> Aktivuji BLESK")
-            self.scene_manager.trigger_sfx_thunder()
-
-        elif key == "s":
-            print("[Input] Stisknuto S -> STOP zvuku a reset světel")
-            self.scene_manager.trigger_stop()
-
-        elif key == "o":
-            print("[Input] Stisknuto O -> Zapinam zarovky")
-            self.scene_manager.trigger_start()
-        elif key == "f":
-            print("[Input] Stisknuto F -> Vypinam zarovky")
-            self.scene_manager.trigger_stop()
-
-        # Volume is a modifier: it never goes through SceneRunner, so it can't
-        # interrupt a running scene. "equal"/"minus" are evdev's names for the
-        # main-row +/- keys; pynput (Windows debug fallback) reports the raw char.
-        elif key in ("=", "equal", "kpplus"):
-            self.scene_manager.trigger_volume_up()
-
-        elif key in ("-", "minus", "kpminus"):
-            self.scene_manager.trigger_volume_down()
+        elif key in self.MODIFIER_KEYS:
+            getattr(self.scene_manager, self.MODIFIER_KEYS[key])()
 
         else:
             print(f"[Input] Klávesa '{key}' nemá přiřazenou žádnou akci.")
