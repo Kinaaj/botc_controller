@@ -2,6 +2,7 @@ import asyncio
 from enum import Enum
 
 from .AudioManager import AudioManager
+from .SceneRunner import SceneContext, SceneRunner
 from .YeelightControllerLib import YeelightControllerLib
 
 
@@ -20,6 +21,7 @@ class SceneManager:
         self.audio = audio_manager
         self.current_scene = Scene.NONE
         self.last_scene = Scene.NONE
+        self.runner = SceneRunner()
 
         # Inicializace 4 controllerů pro žárovky z YAML konfigurace
         self.bulbs = [YeelightControllerLib(b["ip"], b["name"]) for b in bulbs_config]
@@ -79,7 +81,10 @@ class SceneManager:
     def trigger_effect_jail(self):
         return
 
-    async def trigger_sfx_thunder(self):
+    def trigger_sfx_thunder(self):
+        self.runner.run(self._scene_thunder(SceneContext()))
+
+    async def _scene_thunder(self, ctx: SceneContext):
         self.audio.play_sfx("lightning", "01.wav")
         await self._broadcast("flash_lightning")
 
@@ -107,10 +112,23 @@ class SceneManager:
     def trigger_volume_down(self):
         return
 
-    async def trigger_stop(self):
-        await self._broadcast("turn_off")
-        return
+    def trigger_stop(self):
+        self.runner.run(self._scene_stop(SceneContext()))
 
-    async def trigger_start(self):
+    async def _scene_stop(self, ctx: SceneContext):
+        await self._broadcast("turn_off")
+
+    def trigger_start(self):
+        self.runner.run(self._scene_start(SceneContext()))
+
+    async def _scene_start(self, ctx: SceneContext):
         await self._broadcast("turn_on")
-        return
+
+    # Temporary proof scene for Phase 1, removed in Phase 4.
+    def trigger_scene_demo(self):
+        self.runner.run(self._scene_demo(SceneContext()))
+
+    async def _scene_demo(self, ctx: SceneContext):
+        await self._broadcast("set_rgb", 255, 0, 0)
+        await ctx.sleep(4)
+        await self._broadcast("set_rgb", 0, 255, 0)

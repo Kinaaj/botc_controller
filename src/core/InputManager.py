@@ -152,13 +152,13 @@ class InputManager:
         if key == "q":
             print("[Input] Ukončuji aplikaci...")
             # Zavoláme stop pro případ, že zrovna hrál zvuk nebo blikala světla
-            asyncio.create_task(self.scene_manager.trigger_stop())
+            self.scene_manager.trigger_stop()
             await asyncio.sleep(0.5)  # Krátká pauza na zpracování zhasnutí před exitem
             self.running = False
             return
 
-        # Spouštíme scény asynchronně jako samostatné Tasky.
-        # Díky tomu se okamžitě vracíme k naslouchání a můžeme reagovat na další klávesy.
+        # b, s, o, f, t go through SceneRunner and are sync now, so they're called
+        # directly. n, d, p aren't converted yet, so they still need create_task.
         if key == "n":
             print("[Input] Stisknuto N -> Aktivuji NOC")
             asyncio.create_task(self.scene_manager.trigger_scene_night())
@@ -173,19 +173,22 @@ class InputManager:
 
         elif key == "b":
             print("[Input] Stisknuto B -> Aktivuji BLESK")
-            asyncio.create_task(self.scene_manager.trigger_sfx_thunder())
+            self.scene_manager.trigger_sfx_thunder()
 
         elif key == "s":
             print("[Input] Stisknuto S -> STOP zvuku a reset světel")
-            asyncio.create_task(self.scene_manager.trigger_stop())
+            self.scene_manager.trigger_stop()
 
         elif key == "o":
             print("[Input] Stisknuto O -> Zapinam zarovky")
-            asyncio.create_task(self.scene_manager.trigger_start())
+            self.scene_manager.trigger_start()
         elif key == "f":
             print("[Input] Stisknuto F -> Vypinam zarovky")
-            asyncio.create_task(self.scene_manager.trigger_stop())
-        
+            self.scene_manager.trigger_stop()
+
+        elif key == "t":
+            print("[Input] Stisknuto T -> Demo scéna (Fáze 1)")
+            self.scene_manager.trigger_scene_demo()
 
         else:
             print(f"[Input] Klávesa '{key}' nemá přiřazenou žádnou akci.")
