@@ -23,9 +23,8 @@ class InputManager:
     # Scene keys go through SceneManager's runner-backed trigger_* methods (so
     # pressing one cancels-and-replaces whatever scene is currently active).
     # Real keypad codes aren't known yet (no keypad_mapping_spec.md in this
-    # repo) - only the letters already used for manual testing are bound here.
-    # New scenes (Drawing, Evening, wins, evil-color picker, toggles) stay
-    # unbound until the physical layout is known; add them here when it is.
+    # repo). g/e/v/w/c below are arbitrary test bindings, not the final spec
+    # mapping - replace them once the physical keypad layout is known.
     SCENE_KEYS = {
         "n": ("Aktivuji NOC", "trigger_scene_night"),
         "d": ("Aktivuji DEN", "trigger_scene_day"),
@@ -34,6 +33,10 @@ class InputManager:
         "s": ("STOP zvuku a reset světel", "trigger_stop"),
         "o": ("Zapínám žárovky", "trigger_start"),
         "f": ("Vypínám žárovky", "trigger_stop"),
+        "g": ("Aktivuji KRESLENÍ", "trigger_scene_drawing"),
+        "e": ("Aktivuji VEČER", "trigger_scene_evening"),
+        "v": ("Aktivuji VÝHRU ZLA", "trigger_scene_evil_won"),
+        "w": ("Aktivuji VÝHRU DOBRA", "trigger_scene_good_won"),
     }
 
     # Modifier keys call their SceneManager method directly and never touch
@@ -47,6 +50,7 @@ class InputManager:
         "-": "trigger_volume_down",
         "minus": "trigger_volume_down",
         "kpminus": "trigger_volume_down",
+        "c": "trigger_set_evil_color",
     }
 
     def __init__(self, scene_manager: SceneManager, keyboard_select="auto"):
