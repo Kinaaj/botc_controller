@@ -2,11 +2,9 @@ from enum import Enum
 
 class AssetsAudio(Enum):
     OTHER = "other"
-    # drawing music, blesk
+    # drawing music, blesk, bells
     NIGHT_EFFECTS = "night_effects"
     # vrana, vlci (random efekt pri zvonech)
-    BELLS = "bells"
-    # zvuk zvonu pri zacatku noci
     NIGHT_BACKGROUND = "night_background"
     # dlouhe zvuky noci
     DAY = "day"
