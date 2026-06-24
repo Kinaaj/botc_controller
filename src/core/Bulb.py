@@ -45,12 +45,26 @@ class Bulb:
         await self._run(self.bulb.set_color_temp, kelvin, duration=duration)
 
     async def flash_lightning(self):
-        # Equivalent to the original start_cf expression
-        # "50,2,6500,100,100,7,0,0,50,2,6500,100": flash, brief pause, flash again,
-        # then recover to the bulb's previous state.
+        # Flow.actions.recover relies on the bulb's own built-in "restore
+        # previous state" behavior, which is noticeably slow on this
+        # hardware. Instead: snapshot the state ourselves, flash with
+        # action=stay (so the bulb just holds the last flash frame instead
+        # of trying to recover on its own), then restore the snapshot with
+        # our own quick, explicit transition.
+        try:
+            before = await asyncio.to_thread(
+                self.bulb.get_properties, ["power", "bright", "ct", "rgb", "color_mode"]
+            )
+        except (BulbException, OSError) as e:
+            print(f"[{self.name}] Communication error with bulb {self.ip}: {e}")
+            return
+
+        # count=1: one pass through these 3 transitions (flash 50ms, pause
+        # 100ms, flash 50ms). Flow.count loops the *whole* transition list,
+        # so count=3 here would actually flash three times, not once.
         flow = Flow(
-            count=3,
-            action=Flow.actions.recover,
+            count=1,
+            action=Flow.actions.stay,
             transitions=[
                 TemperatureTransition(6500, duration=50, brightness=100),
                 SleepTransition(duration=100),
@@ -58,6 +72,28 @@ class Bulb:
             ],
         )
         await self._run(self.bulb.start_flow, flow)
+        await asyncio.sleep(0.25)  # let the ~200ms flow actually finish before restoring
+        await self._restore(before)
+
+    async def _restore(self, before, duration=300):
+        if before.get("power") != "on":
+            await self._run(self.bulb.turn_off, duration=duration)
+            return
+
+        if before.get("color_mode") == "2" and before.get("ct"):
+            await self._run(self.bulb.set_color_temp, int(before["ct"]), duration=duration)
+        elif before.get("rgb"):
+            rgb = int(before["rgb"])
+            await self._run(
+                self.bulb.set_rgb,
+                (rgb >> 16) & 0xFF,
+                (rgb >> 8) & 0xFF,
+                rgb & 0xFF,
+                duration=duration,
+            )
+
+        if before.get("bright"):
+            await self._run(self.bulb.set_brightness, int(before["bright"]), duration=duration)
 
     async def close(self):
         # No-op: python-yeelight doesn't hold a persistent connection to close.
