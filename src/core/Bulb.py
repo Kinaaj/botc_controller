@@ -10,7 +10,7 @@ class Bulb:
         self.ip = ip
         self.name = name
         self.port = port
-        self.bulb = YeelightBulb(ip, port=port, duration=0, auto_on=False)
+        self.bulb = YeelightBulb(ip, port=port, duration=30, auto_on=False)
 
     async def connect(self):
         # Querying properties is the only command that requires an actual
