@@ -18,9 +18,32 @@ except ImportError:
 
 
 class InputManager:
-    def __init__(self, scene_manager):
+    def __init__(self, scene_manager, keyboard_select="auto"):
         self.scene_manager = scene_manager
         self.running = True
+        self.keyboard_select = keyboard_select
+
+    def _select_keyboard_interactive(self):
+        """Vypíše dostupná evdev zařízení a nechá uživatele vybrat jedno číslem."""
+        if not HAS_EVDEV:
+            print("Warning: evdev not found, interaktivní výběr zařízení není možný.")
+            return None
+
+        devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
+
+        if not devices:
+            print("[Input] Nebyla nalezena žádná vstupní zařízení.")
+            return None
+
+        print("[Input] Dostupná zařízení:")
+        for i, device in enumerate(devices):
+            print(f"  [{i}] {device.name} ({device.path})")
+
+        while True:
+            choice = input("[Input] Zadej číslo klávesnice, kterou chceš použít: ").strip()
+            if choice.isdigit() and 0 <= int(choice) < len(devices):
+                return devices[int(choice)]
+            print("[Input] Neplatná volba, zkus to znovu.")
 
     def _find_keyboard(self):
         """Vyhledá připojenou klávesnici mezi systémovými zařízeními."""
@@ -50,7 +73,10 @@ class InputManager:
             await self._start_listening_pynput()
             return
 
-        keyboard = self._find_keyboard()
+        if self.keyboard_select == "interactive":
+            keyboard = self._select_keyboard_interactive()
+        else:
+            keyboard = self._find_keyboard()
 
         if not keyboard:
             print("[Input] KRITICKÁ CHYBA: Nepodařilo se najít žádnou klávesnici!")
