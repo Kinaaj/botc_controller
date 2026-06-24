@@ -1,6 +1,7 @@
 import asyncio
+import random
 
-from yeelight import Bulb as YeelightBulb, Flow, TemperatureTransition, SleepTransition
+from yeelight import Bulb as YeelightBulb, Flow, TemperatureTransition, SleepTransition, RGBTransition
 from yeelight.main import BulbException
 
 
@@ -47,8 +48,10 @@ class Bulb:
         # Equivalent to the original start_cf expression
         # "50,2,6500,100,100,7,0,0,50,2,6500,100": flash, brief pause, flash again,
         # then recover to the bulb's previous state.
+        flashes_count = random.randint(1, 3)
+
         flow = Flow(
-            count=3,
+            count=flashes_count,
             action=Flow.actions.recover,
             transitions=[
                 TemperatureTransition(6500, duration=50, brightness=100),
@@ -57,6 +60,23 @@ class Bulb:
                 TemperatureTransition(6500, duration=50, brightness=1)
             ],
         )
+        await self._run(self.bulb.start_flow, flow)
+
+    async def flash_color(self, r, g, b):
+        # 1. Zjištění a uložení stavu PŘED efektem
+        print("FLASH 2")        
+        # 2. Spuštění krvavého záblesku
+        flow = Flow(
+            count=1,
+            action=Flow.actions.recover,
+            transitions=[
+                RGBTransition(r, g, b, duration=50, brightness=100),
+                SleepTransition(duration=220),
+                RGBTransition(r, g, b, duration=50, brightness=100),                
+            ],
+        )
+        print("FLASH BLOOD")
+        
         await self._run(self.bulb.start_flow, flow)
 
     async def close(self):

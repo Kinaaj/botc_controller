@@ -62,3 +62,7 @@ class BulbGroup:
 
     async def flash_lightning(self):
         await self._broadcast("flash_lightning")
+
+    async def flash_blood(self, r, g, b):
+        print("FLASH 2")
+        await self._broadcast("flash_color", r, g, b)

@@ -55,8 +55,8 @@ class SceneManager:
             await ctx.sleep(fade_off_seconds)  # let bulbs actually go dark first
 
             self.audio.play_sfx("ambient", "gong.wav")
-            self.audio.play_permanent_ambient("ambient", "night_crickets_1h.mp3", volume=0.3)
-            await ctx.sleep(3)  # blackout pause
+            self.audio.play_permanent_ambient("ambient", "night_crickets_1h.mp3")
+            await ctx.sleep(2)  # blackout pause
 
             r, g, b = self.state.evil_color
             await self.lights.fade_up_to_rgb(r, g, b, seconds=fade_up_seconds)
@@ -69,15 +69,15 @@ class SceneManager:
         self._start_scene(self._scene_day)
 
     async def _scene_day(self, ctx: SceneContext):
-        await self.lights.fade_off(seconds=4)
+        await self.lights.fade_off(seconds=2.2)
         self.audio.start_day("day")
 
     def trigger_scene_evening(self):
         self._start_scene(self._scene_evening)
 
     async def _scene_evening(self, ctx: SceneContext):
-        warm_kelvin = 2700
-        fade_up_seconds = 8
+        warm_kelvin = 3500
+        fade_up_seconds = 4
         await self.lights.fade_off(seconds=1)
         await ctx.sleep(1)
         await self.lights.fade_up_to_temperature(warm_kelvin, seconds=fade_up_seconds)
@@ -117,9 +117,9 @@ class SceneManager:
 
     async def _scene_execution_behead(self, ctx: SceneContext):
         self.audio.play_sfx("execution", "behead.wav")
-        await self.lights.fade_to_rgb(255, 0, 0, seconds=0.3)
-        await ctx.sleep(2)
-        await self.lights.fade_off(seconds=2)
+        print("FLASH BLOOD")
+        await self.lights.flash_blood(255, 0, 0)
+
 
     def trigger_effect_scream_woman(self):
         return
