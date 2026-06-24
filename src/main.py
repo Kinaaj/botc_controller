@@ -1,7 +1,12 @@
+import os
+from pathlib import Path
+
 import yaml
 from core.InputManager import InputManager
 from core.SceneManager import SceneManager
 from core.AudioManager import AudioManager
+
+CODE_PATH = Path(__file__).parent.absolute()
 
 async def main():
     with open("config.yaml", "r", encoding="utf-8") as file:
@@ -9,8 +14,11 @@ async def main():
 
     # Seznam žárovek pro inicializaci controllerů
     bulbs_config = config['network']['yeelights']
-    
-    audio_manager = AudioManager("audio/bgm","audio/sfx")
+
+    bgm_folder =  CODE_PATH / config['audio']['bgm_folder']
+    sfx_folder =  CODE_PATH / config['audio']['sfx_folder']
+
+    audio_manager = AudioManager(bgm_folder, sfx_folder)
     scene_manager = SceneManager(bulbs_config, audio_manager)
     input_manager = InputManager(scene_manager)
     

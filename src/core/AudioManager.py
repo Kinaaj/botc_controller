@@ -10,6 +10,12 @@ MUSIC_END_EVENT = pygame.USEREVENT + 1
 
 class AudioManager:
     def __init__(self, bgm_folder="audio/bgm/", sfx_folder="audio/sfx/"):
+        if not os.path.exists(bgm_folder):
+            raise ValueError(f"Folder not found: {bgm_folder}")
+
+        elif not os.path.exists(sfx_folder):
+            raise ValueError(f"Folder not found: {sfx_folder}")
+
         self.bgm_folder = bgm_folder
         self.sfx_folder = sfx_folder
 
