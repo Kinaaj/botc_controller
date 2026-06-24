@@ -44,9 +44,7 @@ class InputManager:
     # "equal"/"minus"/"kp..." are evdev's names for the real keypad's keys;
     # the bare "="/"-" cover pynput's raw-char reporting (Windows debug only).
     MODIFIER_KEYS = {
-        "=": "trigger_volume_up",
-        "equal": "trigger_volume_up",
-        "kpplus": "trigger_volume_up",
+        "+": "trigger_volume_up",
         "-": "trigger_volume_down",
         "minus": "trigger_volume_down",
         "kpminus": "trigger_volume_down",
