@@ -17,6 +17,10 @@ class AudioManager:
         self.is_night = False
         self.current_playlist = []  # Seznam skladeb pro aktuální fázi
 
+        if not pygame.display.get_init():
+            os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
+            pygame.display.init()
+
         # Inicializace zvukového modulu (pokud už nebyl inicializován)
         if not pygame.mixer.get_init():
             try:
