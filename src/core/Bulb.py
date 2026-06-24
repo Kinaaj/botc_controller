@@ -1,6 +1,6 @@
 import asyncio
 
-from yeelight import Bulb as YeelightBulb
+from yeelight import Bulb as YeelightBulb, Flow, TemperatureTransition, SleepTransition
 from yeelight.main import BulbException
 
 
@@ -44,11 +44,20 @@ class Bulb:
         await self._run(self.bulb.set_color_temp, kelvin, duration=duration)
 
     async def flash_lightning(self):
-        # Sends the original start_cf expression directly: flash to 6500K
-        # over 50ms, pause 100ms, flash again over 50ms, then action 0
-        # (recover) restores the bulb's previous state automatically.
-        params = [3, 0, "50,2,6500,100,100,7,0,0,50,2,6500,100"]
-        await self._run(self.bulb.send_command, "start_cf", params)
+        # Equivalent to the original start_cf expression
+        # "50,2,6500,100,100,7,0,0,50,2,6500,100": flash, brief pause, flash again,
+        # then recover to the bulb's previous state.
+        flow = Flow(
+            count=3,
+            action=Flow.actions.recover,
+            transitions=[
+                TemperatureTransition(6500, duration=50, brightness=100),
+                SleepTransition(duration=100),
+                TemperatureTransition(6500, duration=50, brightness=100),
+                TemperatureTransition(6500, duration=50, brightness=1)
+            ],
+        )
+        await self._run(self.bulb.start_flow, flow)
 
     async def close(self):
         # No-op: python-yeelight doesn't hold a persistent connection to close.
