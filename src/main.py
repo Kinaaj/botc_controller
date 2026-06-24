@@ -6,6 +6,7 @@ import yaml
 from core.InputManager import InputManager
 from core.SceneManager import SceneManager
 from core.AudioManager import AudioManager
+from core.GameState import GameState
 
 CODE_PATH = Path(__file__).parent.absolute()
 
@@ -34,9 +35,25 @@ async def main():
     bgm_folder = CODE_PATH / config['audio']['bgm_folder']
     sfx_folder = CODE_PATH / config['audio']['sfx_folder']
 
-    audio_manager = AudioManager(bgm_folder, sfx_folder)
-    scene_manager = SceneManager(bulbs_config, audio_manager)
+    # The evil-color palette is config, not state: it lives in config.yaml.
+    # GameState only persists which index is currently selected, plus volume.
+    evil_colors = [(c['r'], c['g'], c['b']) for c in config['bulbs']['evil_colors']]
+    game_state = GameState(
+        state_path=str(CODE_PATH / "state.json"),
+        evil_colors=evil_colors,
+        default_volume=config['audio'].get('volume', 0.5),
+    )
+
+    normal_color_cfg = config['bulbs']['normal_color']
+    normal_color = (normal_color_cfg['r'], normal_color_cfg['g'], normal_color_cfg['b'])
+
+    audio_manager = AudioManager(bgm_folder, sfx_folder, volume=game_state.volume)
+    scene_manager = SceneManager(bulbs_config, audio_manager, game_state, normal_color)
     input_manager = InputManager(scene_manager, keyboard_select=args.keyboard_select)
+
+    # Report unreachable bulbs now, at boot, rather than failing silently the
+    # first time a scene tries to use one. The app keeps running either way.
+    await scene_manager.lights.connect_all()
 
     await input_manager.start_listening()
 

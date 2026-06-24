@@ -20,10 +20,53 @@ except ImportError:
 
 
 class InputManager:
+    # Scene keys go through SceneManager's runner-backed trigger_* methods (so
+    # pressing one cancels-and-replaces whatever scene is currently active).
+    # Real keypad codes aren't known yet (no keypad_mapping_spec.md in this
+    # repo). g/e/v/w/c below are arbitrary test bindings, not the final spec
+    # mapping - replace them once the physical keypad layout is known.
+    SCENE_KEYS = {
+        "n": ("Aktivuji NOC", "trigger_scene_night"),
+        "d": ("Aktivuji DEN", "trigger_scene_day"),
+        "p": ("Aktivuji POPRAVU", "trigger_effect_execution"),
+        "b": ("Aktivuji BLESK", "trigger_sfx_thunder"),
+        "s": ("STOP zvuku a reset světel", "trigger_stop"),
+        "o": ("Zapínám žárovky", "trigger_start"),
+        "f": ("Vypínám žárovky", "trigger_stop"),
+        "g": ("Aktivuji KRESLENÍ", "trigger_scene_drawing"),
+        "e": ("Aktivuji VEČER", "trigger_scene_evening"),
+        "v": ("Aktivuji VÝHRU ZLA", "trigger_scene_evil_won"),
+        "w": ("Aktivuji VÝHRU DOBRA", "trigger_scene_good_won"),
+        "c": ("Měním barvu zla", "trigger_set_evil_color"),
+    }
+
+    # Modifier keys call their SceneManager method directly and never touch
+    # SceneRunner, so they can't interrupt whatever scene is active.
+    # "equal"/"minus"/"kp..." are evdev's names for the real keypad's keys;
+    # the bare "="/"-" cover pynput's raw-char reporting (Windows debug only).
+    MODIFIER_KEYS = {
+        "+": "trigger_volume_up",
+        "-": "trigger_volume_down",
+        "minus": "trigger_volume_down",
+        "kpminus": "trigger_volume_down",
+    }
+
     def __init__(self, scene_manager: SceneManager, keyboard_select="auto"):
         self.scene_manager: SceneManager = scene_manager
         self.running = True
         self.keyboard_select = keyboard_select
+        self._validate_bindings()
+
+    def _validate_bindings(self):
+        # Catches a typo'd or renamed trigger_* method at startup instead of
+        # the first time someone happens to press that key.
+        method_names = {name for _, name in self.SCENE_KEYS.values()}
+        method_names |= set(self.MODIFIER_KEYS.values())
+        missing = sorted(name for name in method_names if not hasattr(self.scene_manager, name))
+        if missing:
+            raise AttributeError(
+                f"SceneManager is missing methods referenced in the key table: {missing}"
+            )
 
     def _select_keyboard_interactive(self):
         """Vypíše dostupná evdev zařízení a nechá uživatele vybrat jedno číslem."""
@@ -148,44 +191,22 @@ class InputManager:
             listener.stop()
 
     async def _dispatch_key(self, key):
-        """Rozcestník: Na základě klávesy spustí příslušnou scénu."""
+        """Rozcestník: na základě klávesy zavolá příslušnou metodu SceneManageru."""
         if key == "q":
             print("[Input] Ukončuji aplikaci...")
             # Zavoláme stop pro případ, že zrovna hrál zvuk nebo blikala světla
-            asyncio.create_task(self.scene_manager.trigger_stop())
+            self.scene_manager.trigger_stop()
             await asyncio.sleep(0.5)  # Krátká pauza na zpracování zhasnutí před exitem
             self.running = False
             return
 
-        # Spouštíme scény asynchronně jako samostatné Tasky.
-        # Díky tomu se okamžitě vracíme k naslouchání a můžeme reagovat na další klávesy.
-        if key == "n":
-            print("[Input] Stisknuto N -> Aktivuji NOC")
-            asyncio.create_task(self.scene_manager.trigger_scene_night())
+        if key in self.SCENE_KEYS:
+            label, method_name = self.SCENE_KEYS[key]
+            print(f"[Input] Stisknuto '{key}' -> {label}")
+            getattr(self.scene_manager, method_name)()
 
-        elif key == "d":
-            print("[Input] Stisknuto D -> Aktivuji DEN")
-            asyncio.create_task(self.scene_manager.trigger_scene_day())
-
-        elif key == "p":
-            print("[Input] Stisknuto P -> Aktivuji POPRAVU")
-            asyncio.create_task(self.scene_manager.trigger_scene_execution())
-
-        elif key == "b":
-            print("[Input] Stisknuto B -> Aktivuji BLESK")
-            asyncio.create_task(self.scene_manager.trigger_sfx_thunder())
-
-        elif key == "s":
-            print("[Input] Stisknuto S -> STOP zvuku a reset světel")
-            asyncio.create_task(self.scene_manager.trigger_stop())
-
-        elif key == "o":
-            print("[Input] Stisknuto O -> Zapinam zarovky")
-            asyncio.create_task(self.scene_manager.trigger_start())
-        elif key == "f":
-            print("[Input] Stisknuto F -> Vypinam zarovky")
-            asyncio.create_task(self.scene_manager.trigger_stop())
-        
+        elif key in self.MODIFIER_KEYS:
+            getattr(self.scene_manager, self.MODIFIER_KEYS[key])()
 
         else:
             print(f"[Input] Klávesa '{key}' nemá přiřazenou žádnou akci.")

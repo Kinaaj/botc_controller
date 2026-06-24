@@ -51,6 +51,8 @@ class AudioManager:
 
         self.active_sfx_channels = {}
 
+        self.set_volume(self.current_volume)
+
         # Řekneme Pygame, aby při konci písničky na kanálu "music" vyvolal naši událost
         pygame.mixer.music.set_endevent(MUSIC_END_EVENT)
 
@@ -151,6 +153,13 @@ class AudioManager:
             else:
                 print("[Audio] VAROVÁNÍ: Nejsou volné zvukové kanály pro SFX!")
 
+    def set_volume(self, level):
+        """Sets master volume (0.0-1.0) for BGM and the two reserved channels."""
+        self.current_volume = max(0.0, min(1.0, level))
+        pygame.mixer.music.set_volume(self.current_volume)
+        self.sequence_channel.set_volume(self.current_volume)
+        self.ambient_channel.set_volume(self.current_volume)
+
     # --- HLAVNÍ ATMOSFÉRICKÉ SCÉNY ---
 
     async def start_night_sequence(self, intro_sfx_list, night_subfolder):
@@ -210,7 +219,7 @@ class AudioManager:
 
         print("[Audio] Všechny zvuky byly kompletně zastaveny a resetovány.")
 
-    def play_tracked_sfx(self, category, filename, tag=None, volume=1.0):
+    def play_tracked_sfx(self, category, filename, tag=None, volume=1.0, loops=0):
         """
         Spustí dlouhý efekt a uloží si jeho kanál pod zadaným tagem.
         :param tag: Identifikátor pro pozdější zastavení. Pokud není zadán, použije se filename.
@@ -227,7 +236,7 @@ class AudioManager:
 
             if free_channel:
                 sound.set_volume(volume)
-                free_channel.play(sound)
+                free_channel.play(sound, loops=loops)
 
                 # Uložíme kanál pod naším tagem
                 self.active_sfx_channels[effect_tag] = free_channel
