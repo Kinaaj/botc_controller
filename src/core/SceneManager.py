@@ -128,7 +128,11 @@ class SceneManager:
         return
 
     def trigger_set_evil_color(self):
-        self.state.next_evil_color()
+        self._start_scene(self._scene_set_evil_color)
+
+    async def _scene_set_evil_color(self, ctx: SceneContext):
+        r, g, b = self.state.next_evil_color()
+        await self.lights.fade_to_rgb(r, g, b, seconds=0.5)
 
     def trigger_scene_evil_won(self):
         self._start_scene(self._scene_evil_won)

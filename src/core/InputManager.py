@@ -37,6 +37,7 @@ class InputManager:
         "e": ("Aktivuji VEČER", "trigger_scene_evening"),
         "v": ("Aktivuji VÝHRU ZLA", "trigger_scene_evil_won"),
         "w": ("Aktivuji VÝHRU DOBRA", "trigger_scene_good_won"),
+        "c": ("Měním barvu zla", "trigger_set_evil_color"),
     }
 
     # Modifier keys call their SceneManager method directly and never touch
@@ -48,7 +49,6 @@ class InputManager:
         "-": "trigger_volume_down",
         "minus": "trigger_volume_down",
         "kpminus": "trigger_volume_down",
-        "c": "trigger_set_evil_color",
     }
 
     def __init__(self, scene_manager: SceneManager, keyboard_select="auto"):
