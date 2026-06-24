@@ -3,12 +3,12 @@ network:
   yeelights:
     - ip: "192.168.10.111"
       name: "Žárovka 1"
-    - ip: "192.168.10.113"
-      name: "Žárovka 2"
-    - ip: "192.168.10.114"
-      name: "Žárovka 3"
-    - ip: "192.168.10.115"
-      name: "Žárovka 4"
+#    - ip: "192.168.10.113"
+#      name: "Žárovka 2"
+#    - ip: "192.168.10.114"
+#      name: "Žárovka 3"
+#    - ip: "192.168.10.115"
+#      name: "Žárovka 4"
 
 # --- NASTAVENÍ ZVUKU ---
 audio:
