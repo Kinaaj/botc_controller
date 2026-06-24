@@ -9,7 +9,7 @@ MUSIC_END_EVENT = pygame.USEREVENT + 1
 
 
 class AudioManager:
-    def __init__(self, bgm_folder="audio/bgm/", sfx_folder="audio/sfx/"):
+    def __init__(self, bgm_folder="audio/bgm/", sfx_folder="audio/sfx/", volume=1.0):
         if not os.path.exists(bgm_folder):
             raise ValueError(f"Folder not found: {bgm_folder}")
 
@@ -22,6 +22,7 @@ class AudioManager:
         # Stavy herní atmosféry
         self.is_night = False
         self.current_playlist = []  # Seznam skladeb pro aktuální fázi
+        self.current_volume = volume
 
         if not pygame.display.get_init():
             os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
