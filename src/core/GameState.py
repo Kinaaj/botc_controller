@@ -1,5 +1,6 @@
 import json
 import os
+from .BulbState import BulbState,BulbStateType
 
 
 class GameState:
@@ -8,7 +9,7 @@ class GameState:
     survive restarts.
     """
 
-    def __init__(self, state_path, evil_colors, default_volume=0.5):
+    def __init__(self, state_path, evil_colors, normal_temperature, default_volume=0.5):
         if not evil_colors:
             raise ValueError("evil_colors must contain at least one color")
 
@@ -16,7 +17,10 @@ class GameState:
         self.evil_colors = [tuple(c) for c in evil_colors]
         self._evil_color_index = 0
         self._volume = default_volume
+        self.normal_temperature = normal_temperature
         self._load()
+        r, g, b =self.evil_colors[self._evil_color_index]
+        self.default_bulb_state = BulbState(BulbStateType.TEMPERATURE, self.normal_temperature, r, g, b, 100)
 
     def _load(self):
         if not os.path.exists(self.state_path):
@@ -53,4 +57,6 @@ class GameState:
     def next_evil_color(self):
         self._evil_color_index = (self._evil_color_index + 1) % len(self.evil_colors)
         self._save()
+        r, g, b = self.evil_color
+        self.default_bulb_state.update_RGB(r, g, b)
         return self.evil_color

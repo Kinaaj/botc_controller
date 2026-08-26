@@ -4,24 +4,23 @@ import random
 
 import pygame
 
+from .AudioPaths import BGM
+
 # Definujeme si vlastní identifikátor události pro konec písničky
 MUSIC_END_EVENT = pygame.USEREVENT + 1
 
 
 class AudioManager:
-    def __init__(self, bgm_folder="audio/bgm/", sfx_folder="audio/sfx/", volume=1.0):
-        if not os.path.exists(bgm_folder):
-            raise ValueError(f"Folder not found: {bgm_folder}")
+    def __init__(self, audio_folder="audio/", volume=1.0):
+        if not os.path.exists(audio_folder):
+            raise ValueError(f"Folder not found: {audio_folder}")
 
-        elif not os.path.exists(sfx_folder):
-            raise ValueError(f"Folder not found: {sfx_folder}")
-
-        self.bgm_folder = bgm_folder
-        self.sfx_folder = sfx_folder
+        self.audio_folder = audio_folder
 
         # Stavy herní atmosféry
         self.is_night = False
-        self.current_playlist = []  # Seznam skladeb pro aktuální fázi
+        self.night_playlist = []  # Seznam skladeb pro aktuální fázi
+        self.night_playlist_index = 0
         self.current_volume = volume
 
         if not pygame.display.get_init():
@@ -58,36 +57,96 @@ class AudioManager:
 
         # Spustíme asynchronní úkol, který neustále na pozadí hlídá konec písniček
         asyncio.create_task(self._playlist_watcher())
+
+        self.audio_library = {}
+        self._preload_library()
+        self._preload_night_playlist()
         print("[Audio] AudioManager úspěšně inicializován.")
+    
+    def _preload_library(self):
+        """Projdede komplet celou složku audio a uloží si obsahy. BGM i SFX."""
+        for root, dirs, files in os.walk(self.audio_folder):
+            # OPRAVA: Převedeme název souboru na malá písmena pro kontrolu přípony
+            audio_files = [f for f in files if f.lower().endswith(('.wav', '.mp3', '.ogg'))]
+            if audio_files:
+                rel_path = os.path.relpath(root, self.audio_folder).replace("\\", "/").lower()
+                if rel_path == ".":
+                    rel_path = ""
+                self.audio_library[rel_path] = [os.path.join(root, f) for f in audio_files]
+        
+        print("===========")
+        for key, value in self.audio_library.items():
+            print(key, value)
+        print("===========")
+    
+    def _preload_night_playlist(self):
+        self.night_playlist = self._get_audio_files(BGM.Night)
+        random.shuffle(self.night_playlist)
 
-    # --- POMOCNÉ METODY PRO CESTY A SOUBORY ---
+    def _get_path_from_class(self, category_class):
+        """Převede zanořenou třídu (např. SFX.Day.Crowd) na text 'sfx/day/crowd'"""
+        qualname = getattr(category_class, "__qualname__", "")
+        return qualname.replace(".", "/").lower()
 
-    def _get_bgm_files(self, subfolder):
-        """Vrátí seznam všech .mp3 souborů v dané podsložce (např. 'night' nebo 'day')."""
-        path = os.path.join(self.bgm_folder, subfolder)
-        if not os.path.exists(path):
-            print(f"[Audio] VAROVÁNÍ: Složka {path} neexistuje!")
-            return []
-        return [os.path.join(path, f) for f in os.listdir(path) if f.endswith(".mp3")]
+    def _get_audio_files(self, category_class, filename=None):
+        """
+        Nová hlavní univerzální funkce! 
+        Pouze najde a vrátí seznam dostupných cest k souborům (Nic nenačítá do RAM!).
+        """
+        folder_path = self._get_path_from_class(category_class) if not isinstance(category_class, str) else category_class.lower()
+        print(folder_path)
+        valid_files = []
 
-    def _get_sfx_path(self, category, filename):
-        """Pomocná metoda pro sestavení cesty k SFX nebo ambientu."""
-        return os.path.join(self.sfx_folder, category, filename)
+        if filename:
+            filepath = os.path.join(self.audio_folder, folder_path, filename)
+            if os.path.exists(filepath):
+                valid_files.append(filepath)
+        else:
+            # Kaskádové hledání
+            search_prefix = folder_path
+            for path_key, files in self.audio_library.items():
+                if path_key == search_prefix or path_key.startswith(search_prefix + "/"):
+                    valid_files.extend(files)
+
+        return valid_files
+
+    def play_tracked_sfx(self, category_class, filename=None, tag=None, volume=1.0, loops=0, fade_ms=0):
+        """Zjednodušeno! Místo duplicitní logiky rovnou používá náš load_sfx."""
+        sound = self.load_sfx(category_class, filename)
+        if not sound:
+            return None
+
+        folder_path = self._get_path_from_class(category_class) if not isinstance(category_class, str) else category_class.lower()
+        effect_tag = tag if tag else folder_path
+
+        self.stop_tracked_sfx(effect_tag, fade_ms=0)
+
+        free_channel = pygame.mixer.find_channel()
+        if free_channel:
+            # OPRAVA: Nastavujeme hlasitost kanálu, ne sdíleného Sound objektu!
+            free_channel.set_volume(volume)
+            free_channel.play(sound, loops=loops, fade_ms=fade_ms)
+            self.active_sfx_channels[effect_tag] = free_channel
+            print(f"[Audio] Spuštěn efekt {effect_tag}")
+            return free_channel
+
+        return None
 
     # --- LOGIKA PLAYLISTU (HUDBA NA POZADÍ) ---
 
     def _play_next_in_playlist(self):
         """Vybere náhodnou skladbu z aktuálního playlistu a spustí ji."""
-        if not self.current_playlist:
+        if not self.night_playlist:
             return
 
-        next_track = random.choice(self.current_playlist)
+        next_track = self.night_playlist[self.night_playlist_index]
         print(f"[Audio] Přehrávám další skladbu: {os.path.basename(next_track)}")
 
         try:
             pygame.mixer.music.load(next_track)
             # loops=0 znamená přehrát jen jednou, po dohrání vyvolá MUSIC_END_EVENT
             pygame.mixer.music.play(loops=0, fade_ms=2000)
+            self.night_playlist_index = (self.night_playlist_index+1)%len(self.night_playlist)
         except Exception as e:
             print(f"[Audio] Chyba při načítání skladby {next_track}: {e}")
 
@@ -98,7 +157,7 @@ class AudioManager:
             for event in pygame.event.get():
                 if event.type == MUSIC_END_EVENT:
                     # Písnička skončila! Pustíme další z aktivního playlistu
-                    if self.current_playlist:
+                    if self.night_playlist:
                         self._play_next_in_playlist()
 
             # Pauza, abychom nevytěžovali procesor (stačí kontrolovat 2x za vteřinu)
@@ -106,19 +165,16 @@ class AudioManager:
 
     # --- PERMANENTNÍ AMBIENT (KANÁL 7) ---
 
-    def play_permanent_ambient(self, category, filename, volume=0.5):
-        """Spustí dlouhý ambientní podkres (cvrčci, vítr) v nekonečné smyčce."""
-        path = self._get_sfx_path(category, filename)
-        if not os.path.exists(path):
-            print(f"[Audio] Chyba: Ambientní soubor {path} neexistuje!")
+    def play_permanent_ambient(self, category_class, filename=None, volume=1.0):
+        """Spustí dlouhý ambientní podkres v nekonečné smyčce (nyní s podporou SFX tříd!)."""
+        sound = self.load_sfx(category_class, filename)
+        if not sound:
             return
 
-        print(f"[Audio] Spouštím permanentní ambient: {filename}")
-        self.cached_ambient = pygame.mixer.Sound(path)
+        print(f"[Audio] Spouštím permanentní ambient z větve: {category_class.__name__ if hasattr(category_class, '__name__') else category_class}")
+        self.cached_ambient = sound
         self.ambient_channel.set_volume(volume)
-
-        # loops=-1 (nekonečná smyčka), fadein_ms=3000 (náběh přes 3 vteřiny)
-        self.ambient_channel.play(self.cached_ambient, loops=-1, fadein_ms=3000)
+        self.ambient_channel.play(self.cached_ambient, loops=-1, fade_ms=3000)
 
     def stop_permanent_ambient(self, fade_ms=2000):
         """Plynule ztlumí a zastaví permanentní ambient."""
@@ -126,32 +182,38 @@ class AudioManager:
             print("[Audio] Zastavuji permanentní ambient...")
             self.ambient_channel.fadeout(fade_ms)
 
-    # --- JEDNORÁZOVÉ ZVUKOVÉ EFEKTY (SFX) ---
+# --- JEDNORÁZOVÉ ZVUKOVÉ EFEKTY (SFX) ---
 
-    def load_sfx(self, category, filename):
-        """Načte jednorázový zvuk do paměti a vrátí ho."""
-        path = self._get_sfx_path(category, filename)
-        key = f"{category}/{filename}"
+    def load_sfx(self, category_class, filename=None):
+        """Využije univerzální hledání. Vybere jeden soubor a NAČTE HO DO RAM."""
+        print("LOADUJEME")
+        valid_files = self._get_audio_files(category_class, filename)
+        if not valid_files:
+            print(f"[Audio] VAROVÁNÍ: Nenalezeny žádné SFX pro {category_class}")
+            return None
 
-        if key not in self.cached_sfx:
-            if os.path.exists(path):
-                self.cached_sfx[key] = pygame.mixer.Sound(path)
-            else:
-                print(f"[Audio] VAROVÁNÍ: SFX soubor {path} neexistuje!")
-                return None
-        return self.cached_sfx.get(key)
+        # Náhodný výběr JEDNOHO souboru
+        filepath = random.choice(valid_files)
 
-    def play_sfx(self, category, filename, volume=1.0):
-        """Pustí zvuk přes volný kanál (blesk, výkřik, zaklepání)."""
-        sound = self.load_sfx(category, filename)
+        # Cachování do RAM
+        if filepath not in self.cached_sfx:
+            self.cached_sfx[filepath] = pygame.mixer.Sound(filepath)
+            
+        return self.cached_sfx[filepath]
+
+    def play_sfx(self, category_class, filename=None, volume=1.0):
+        """Pustí krátký jednorázový zvuk (nyní s podporou SFX tříd!)."""
+        sound = self.load_sfx(category_class, filename)
         if sound:
-            sound.set_volume(volume)
-            # find_channel() vyhledá jakýkoliv volný kanál mimo těch hrajících
             free_channel = pygame.mixer.find_channel()
             if free_channel:
+                # OPRAVA: Nastavujeme hlasitost kanálu
+                free_channel.set_volume(volume)
                 free_channel.play(sound)
             else:
                 print("[Audio] VAROVÁNÍ: Nejsou volné zvukové kanály pro SFX!")
+
+
 
     def set_volume(self, level):
         """Sets master volume (0.0-1.0) for BGM and the two reserved channels."""
@@ -162,24 +224,26 @@ class AudioManager:
 
     # --- HLAVNÍ ATMOSFÉRICKÉ SCÉNY ---
 
-    async def start_night_sequence(self, intro_sfx_list, night_subfolder):
-        """Spustí úvodní efekty za sebou a následně zaktivuje noční playlist."""
+    async def start_night_sequence(self, intro_sfx_list, bgm_class):
+        """
+        Spustí úvodní efekty (intro_sfx_list) a poté zaktivuje noční playlist.
+        intro_sfx_list: List s [SFX.Class, SFX.Class, ...]
+        bgm_class: Třída reprezentující složku s hudbou (např. BGM.Night)
+        """
         self.is_night = True
 
-        # Načteme složku s playlistem
-        self.current_playlist = self._get_bgm_files(night_subfolder)
-        print(
-            f"[Audio] Začíná Noc. Načteno {len(self.current_playlist)} skladeb z '{night_subfolder}'."
-        )
+        # 1. Načtení playlistu pomocí kaskádového hledání
+        self.night_playlist = self._get_audio_files(bgm_class)
+        print(f"[Audio] Začíná Noc. Načteno {len(self.night_playlist)} skladeb.")
 
-        # 1. Přehrání úvodních efektů ze seznamu
-        for sfx_info in intro_sfx_list:
+        # 2. Přehrání úvodních efektů (Sekvenčně)
+        for sfx_class in intro_sfx_list:
             if not self.is_night:
-                return  # Pokud někdo během intra hru zastaví, přerušíme to
+                return  # Přerušení, pokud se mezitím změnila scéna
 
-            category, filename = sfx_info
-            sound = self.load_sfx(category, filename)
-            # volné zvukové kanály
+            # Použijeme tvou novou metodu, která vrací Sound objekt
+            sound = self.load_sfx(sfx_class)
+            
             if sound:
                 self.sequence_channel.play(sound)
                 # Čekáme, dokud zvuk dohraje
@@ -189,79 +253,77 @@ class AudioManager:
                         self.sequence_channel.stop()
                         return
 
-        # 2. Po dohrání intra spustíme playlist hudby
-        if self.is_night and self.current_playlist:
+        # 3. Po dohrání intra spustíme playlist hudby
+        if self.is_night and self.night_playlist:
             self._play_next_in_playlist()
 
-    def start_day(self, day_subfolder):
-        """Okamžitě přepne playlist na denní a stopne noční sekvence."""
+    def stop_night_sequence(self, fade_ms=2000):
+        """
+        Bezpečně ukončí noční sekvenci, zastaví hudbu a vyčistí playlist.
+        """
+        print("[Audio] Ukončuji noční sekvenci...")
         self.is_night = False
+        
+        # 1. Zastaví sekvenční kanál (pokud by zrovna dohrávalo intro)
         self.sequence_channel.stop()
-
-        # Načteme denní playlist a spustíme první track
-        self.current_playlist = self._get_bgm_files(day_subfolder)
-        print(
-            f"[Audio] Začíná Den. Načteno {len(self.current_playlist)} skladeb z '{day_subfolder}'."
-        )
-
-        if self.current_playlist:
-            self._play_next_in_playlist()
+        
+        # 2. Plynule ztlumí hudbu na pozadí
+        pygame.mixer.music.fadeout(fade_ms)
+        
+        # 3. Vyprázdní playlist, aby watchery nezačaly hrát další skladbu
+        self.night_playlist = []
 
     def stop_all(self):
-        """Zastaví kompletně všechen zvuk (hudbu, SFX, ambienty) a vyčistí playlist."""
+        """Zastaví kompletne všetok zvuk (hudbu, SFX, ambienty) a vyčistí playlist."""
         self.is_night = False
-        self.current_playlist = []
+        self.night_playlist = []
+        
+        # VYČISTENIE TRACKOVANÝCH EFEKTOV
+        self.active_sfx_channels.clear()
 
         pygame.mixer.music.fadeout(1000)  # Stopne BGM (playlist)
-        self.stop_permanent_ambient(1000)  # Stopne hodinovou smyčku
-        self.sequence_channel.stop()  # Stopne případná intra
-        pygame.mixer.stop()  # Shodí všechny ostatní SFX kanály
+        self.stop_permanent_ambient(1000)  # Stopne hodinovú slučku
+        self.sequence_channel.stop()  # Stopne prípadné intrá
+        pygame.mixer.stop()  # Zhodí všetky ostatné SFX kanály
 
-        print("[Audio] Všechny zvuky byly kompletně zastaveny a resetovány.")
+        print("[Audio] Všetky zvuky boli kompletne zastavené a resetované.")
 
-    def play_tracked_sfx(self, category, filename, tag=None, volume=1.0, loops=0):
+
+    def stop_tracked_sfx(self, tag, fade_ms=500, specific_channel=None, delay_ms=0):
         """
-        Spustí dlouhý efekt a uloží si jeho kanál pod zadaným tagem.
-        :param tag: Identifikátor pro pozdější zastavení. Pokud není zadán, použije se filename.
+        Zastaví konkrétny efekt podľa jeho tagu, alebo zastaví konkrétny zadaný kanál.
+        Ak je zadané delay_ms > 0, zastavenie sa odloží o daný počet milisekúnd.
         """
-        effect_tag = tag if tag else filename
 
-        # Pokud už pod tímto tagem něco hraje, pro jistotu to ukončíme,
-        # abychom neměli dva stejné efekty hrající přes sebe.
-        self.stop_tracked_sfx(effect_tag, fade_ms=0)
+        if not isinstance(tag, str):
+            tag = self._get_path_from_class(tag)
 
-        sound = self.load_sfx(category, filename)
-        if sound:
-            free_channel = pygame.mixer.find_channel()
+        # Pokud máme zpoždění, rovnou vyrobíme nezávislý odpočet na pozadí a skončíme
+        if delay_ms > 0:
+            async def _delayed_stop():
+                await asyncio.sleep(delay_ms / 1000.0)
+                # Po uplynutí času zavoláme tu samou funkci znovu, ale už s delay_ms=0
+                self.stop_tracked_sfx(tag, fade_ms=fade_ms, specific_channel=specific_channel, delay_ms=0)
+            
+            asyncio.create_task(_delayed_stop())
+            return True
 
-            if free_channel:
-                sound.set_volume(volume)
-                free_channel.play(sound, loops=loops)
+        # --- Zbytek funkce zůstává úplně stejný jako předtím ---
+        if specific_channel is not None:
+            if specific_channel.get_busy():
+                print(f"[Audio] Zastavujem špecifický dožívajúci kanál pre efekt: {tag}")
+                specific_channel.fadeout(fade_ms)
+            
+            if self.active_sfx_channels.get(tag) == specific_channel:
+                del self.active_sfx_channels[tag]
+            return True
 
-                # Uložíme kanál pod naším tagem
-                self.active_sfx_channels[effect_tag] = free_channel
-                print(f"[Audio] Spuštěn sledovaný efekt: {effect_tag}")
-                return True
-            else:
-                print("[Audio] VAROVÁNÍ: Nejsou volné zvukové kanály pro SFX!")
-
-        return False
-
-    def stop_tracked_sfx(self, tag, fade_ms=500):
-        """
-        Zastaví konkrétní efekt podle jeho tagu, pokud hraje.
-        """
         if tag in self.active_sfx_channels:
             channel = self.active_sfx_channels[tag]
-
-            # Zastavíme, pouze pokud kanál skutečně hraje
             if channel.get_busy():
-                print(f"[Audio] Zastavuji efekt: {tag}")
+                print(f"[Audio] Zastavujem efekt: {tag}")
                 channel.fadeout(fade_ms)
-
-            # Smažeme stopu ze slovníku
             del self.active_sfx_channels[tag]
             return True
 
-        # Vracíme False, pokud tag nebyl nalezen (nic se nezastavovalo)
         return False

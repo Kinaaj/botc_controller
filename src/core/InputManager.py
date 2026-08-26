@@ -26,18 +26,22 @@ class InputManager:
     # repo). g/e/v/w/c below are arbitrary test bindings, not the final spec
     # mapping - replace them once the physical keypad layout is known.
     SCENE_KEYS = {
-        "n": ("Aktivuji NOC", "trigger_scene_night"),
-        "d": ("Aktivuji DEN", "trigger_scene_day"),
-        "p": ("Aktivuji POPRAVU", "trigger_effect_execution"),
-        "b": ("Aktivuji BLESK", "trigger_sfx_thunder"),
-        "s": ("STOP zvuku a reset světel", "trigger_stop"),
-        "o": ("Zapínám žárovky", "trigger_start"),
-        "f": ("Vypínám žárovky", "trigger_stop"),
-        "g": ("Aktivuji KRESLENÍ", "trigger_scene_drawing"),
-        "e": ("Aktivuji VEČER", "trigger_scene_evening"),
-        "v": ("Aktivuji VÝHRU ZLA", "trigger_scene_evil_won"),
-        "w": ("Aktivuji VÝHRU DOBRA", "trigger_scene_good_won"),
-        "c": ("Měním barvu zla", "trigger_set_evil_color"),
+        "u": ("Aktivuji NOC", "trigger_scene_night"),
+        "y": ("Aktivuji DEN", "trigger_scene_day"),
+        "b": ("Aktivuji POPRAVU", "trigger_effect_execution"),
+        "h": ("Aktivuji BLESK", "trigger_sfx_thunder"),
+        "x": ("STOP zvuku", "trigger_stop_audio"),
+        "c": ("Prepinam žárovky", "trigger_toggle_lights"),
+        "i": ("Aktivuji LOSOVANI", "trigger_scene_drawing"),
+        "t": ("Aktivuji VEČER", "trigger_scene_evening"),
+        "a": ("Aktivuji VÝHRU ZLA", "trigger_scene_evil_won"),
+        "q": ("Aktivuji VÝHRU DOBRA", "trigger_scene_good_won"),
+        "e": ("Měním barvu zla", "trigger_set_evil_color"),
+        "n": ("Jail", "trigger_effect_jail"),
+        "j": ("Man", "trigger_effect_scream_man"),
+        "k": ("Female", "trigger_effect_scream_woman"),
+        "m": ("Clocks", "trigger_effect_clocks"),
+        "g": ("Demon", "trigger_effect_demon")
     }
 
     # Modifier keys call their SceneManager method directly and never touch
@@ -45,8 +49,8 @@ class InputManager:
     # "equal"/"minus"/"kp..." are evdev's names for the real keypad's keys;
     # the bare "="/"-" cover pynput's raw-char reporting (Windows debug only).
     MODIFIER_KEYS = {
-        "+": "trigger_volume_up",
-        "-": "trigger_volume_down",
+        "d": "trigger_volume_up",
+        "s": "trigger_volume_down",
         "minus": "trigger_volume_down",
         "kpminus": "trigger_volume_down",
     }
@@ -192,7 +196,7 @@ class InputManager:
 
     async def _dispatch_key(self, key):
         """Rozcestník: na základě klávesy zavolá příslušnou metodu SceneManageru."""
-        if key == "q":
+        if key == "l":
             print("[Input] Ukončuji aplikaci...")
             # Zavoláme stop pro případ, že zrovna hrál zvuk nebo blikala světla
             self.scene_manager.trigger_stop()

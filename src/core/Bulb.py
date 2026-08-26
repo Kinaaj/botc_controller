@@ -3,6 +3,7 @@ import random
 
 from yeelight import Bulb as YeelightBulb, Flow, TemperatureTransition, SleepTransition, RGBTransition
 from yeelight.main import BulbException
+from .BulbState import BulbState, BulbStateType
 
 
 class Bulb:
@@ -44,37 +45,68 @@ class Bulb:
     async def set_temperature(self, kelvin, duration=500):
         await self._run(self.bulb.set_color_temp, kelvin, duration=duration)
 
-    async def flash_lightning(self):
+    async def flash_lightning(self, target_state: BulbState):
         # Equivalent to the original start_cf expression
         # "50,2,6500,100,100,7,0,0,50,2,6500,100": flash, brief pause, flash again,
         # then recover to the bulb's previous state.
         flashes_count = random.randint(1, 3)
 
-        flow = Flow(
-            count=flashes_count,
-            action=Flow.actions.recover,
-            transitions=[
-                TemperatureTransition(6500, duration=50, brightness=100),
-                SleepTransition(duration=100),
-                TemperatureTransition(6500, duration=50, brightness=100),
-                TemperatureTransition(6500, duration=50, brightness=1)
-            ],
-        )
+        if target_state.state_type == BulbStateType.TEMPERATURE:
+            flow = Flow(
+                count=1,
+                action=Flow.actions.stay,
+                transitions=flashes_count * [
+                    TemperatureTransition(6500, duration=50, brightness=100),
+                    SleepTransition(duration=100),
+                    TemperatureTransition(6500, duration=50, brightness=100),
+                    TemperatureTransition(6500, duration=50, brightness=1)] +
+                    [TemperatureTransition(target_state.temperature, duration=1500, brightness=target_state.brightness)
+                ],
+            )
+        else:
+            flow = Flow(
+                count=1,
+                action=Flow.actions.stay,
+                transitions= flashes_count * [
+                    TemperatureTransition(6500, duration=50, brightness=100),
+                    SleepTransition(duration=100),
+                    TemperatureTransition(6500, duration=50, brightness=100),
+                    TemperatureTransition(6500, duration=50, brightness=1)] + [
+                    RGBTransition(target_state.r, target_state.g, target_state.b, duration=1500, brightness=target_state.brightness)
+                ],
+            )
+
         await self._run(self.bulb.start_flow, flow)
 
-    async def flash_color(self, r, g, b):
+
+
+    async def flash_color(self, r, g, b, delay, target_state: BulbState):
         # 1. Zjištění a uložení stavu PŘED efektem
-        print("FLASH 2")        
         # 2. Spuštění krvavého záblesku
-        flow = Flow(
-            count=1,
-            action=Flow.actions.recover,
-            transitions=[
-                RGBTransition(r, g, b, duration=50, brightness=100),
-                SleepTransition(duration=220),
-                RGBTransition(r, g, b, duration=50, brightness=100),                
-            ],
-        )
+
+        if target_state.state_type == BulbStateType.TEMPERATURE:
+            flow = Flow(
+                count=1,
+                action=Flow.actions.stay,
+                transitions=[
+                    SleepTransition(duration=delay),
+                    RGBTransition(r, g, b, duration=50, brightness=100),
+                    SleepTransition(duration=220),
+                    RGBTransition(r, g, b, duration=50, brightness=100), 
+                    TemperatureTransition(target_state.temperature, duration=1500, brightness=target_state.brightness)]
+            )
+        else:
+            flow = Flow(
+                count=1,
+                action=Flow.actions.stay,
+                transitions=[
+                    SleepTransition(duration=delay),
+                    RGBTransition(r, g, b, duration=50, brightness=100),
+                    SleepTransition(duration=220),
+                    RGBTransition(r, g, b, duration=50, brightness=100),  
+                    RGBTransition(target_state.r, target_state.g, target_state.b, duration=1500, brightness=target_state.brightness)              
+                ],
+            )
         print("FLASH BLOOD")
         
         await self._run(self.bulb.start_flow, flow)
@@ -82,3 +114,6 @@ class Bulb:
     async def close(self):
         # No-op: python-yeelight doesn't hold a persistent connection to close.
         return
+    
+    async def start_flow(self, flow):
+        await self._run(self.bulb.start_flow, flow)

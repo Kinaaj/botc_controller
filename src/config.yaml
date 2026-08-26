@@ -1,36 +1,30 @@
 # --- NASTAVENÍ SÍTĚ ---
 network:
   yeelights:
-    - ip: "192.168.10.111"
+    - ip: "192.168.10.112"
       name: "Žárovka 1"
-#    - ip: "192.168.10.113"
-#      name: "Žárovka 2"
-#    - ip: "192.168.10.114"
-#      name: "Žárovka 3"
-#    - ip: "192.168.10.115"
-#      name: "Žárovka 4"
+    - ip: "192.168.10.113"
+      name: "Žárovka 2"
+    - ip: "192.168.10.114"
+      name: "Žárovka 3"
+    - ip: "192.168.10.115"
+      name: "Žárovka 4"
 
 # --- NASTAVENÍ ZVUKU ---
 audio:
-  bgm_folder: "audio/bgm/"
-  sfx_folder: "audio/sfx/"
-  volume: 0.5
+  folder: "audio/"
+  volume: 1.0
 
 bulbs:
   normal_color:
-    r: 255
-    g: 255
-    b: 255
+    kelvin: 3200
   evil_colors:
     - r: 255
       g: 0
       b: 0
-    - r: 255
-      g: 128
-      b: 0
-    - r: 255
+    - r: 235
       g: 0
-      b: 255
+      b: 235
     - r: 0
       g: 0
       b: 255

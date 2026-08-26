@@ -32,8 +32,10 @@ async def main():
     # Seznam žárovek pro inicializaci controllerů
     bulbs_config = config['network']['yeelights']
 
-    bgm_folder = CODE_PATH / config['audio']['bgm_folder']
-    sfx_folder = CODE_PATH / config['audio']['sfx_folder']
+    audio_folder = CODE_PATH / config['audio']['folder']
+
+    normal_color_cfg = config['bulbs']['normal_color']
+    normal_color = normal_color_cfg['kelvin']
 
     # The evil-color palette is config, not state: it lives in config.yaml.
     # GameState only persists which index is currently selected, plus volume.
@@ -42,13 +44,13 @@ async def main():
         state_path=str(CODE_PATH / "state.json"),
         evil_colors=evil_colors,
         default_volume=config['audio'].get('volume', 0.5),
+        normal_temperature=normal_color
     )
 
-    normal_color_cfg = config['bulbs']['normal_color']
-    normal_color = (normal_color_cfg['r'], normal_color_cfg['g'], normal_color_cfg['b'])
 
-    audio_manager = AudioManager(bgm_folder, sfx_folder, volume=game_state.volume)
-    scene_manager = SceneManager(bulbs_config, audio_manager, game_state, normal_color)
+
+    audio_manager = AudioManager(audio_folder, volume=game_state.volume)
+    scene_manager = SceneManager(bulbs_config, audio_manager, game_state)
     input_manager = InputManager(scene_manager, keyboard_select=args.keyboard_select)
 
     # Report unreachable bulbs now, at boot, rather than failing silently the
