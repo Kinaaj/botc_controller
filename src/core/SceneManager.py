@@ -127,6 +127,7 @@ class SceneManager:
     async def _scene_execution_behead(self, ctx: SceneContext):
         print("[Scene] Spouštím gilotinu a krvavý záblesk...")
         self.audio.play_tracked_sfx(category_class=SFX.Day.Gilotina, volume=self.state.volume)
+        print("FLASH BLOOD")
         await self.lights.flash_blood(255, 0, 0, delay=600, default_bulb_state=self.state.default_bulb_state)
 
     def trigger_effect_clocks(self):
@@ -175,10 +176,12 @@ class SceneManager:
 
 
     def trigger_volume_up(self):
+        print("VOLUME +")
         self.state.volume = min(1.0, self.state.volume + VOLUME_STEP)
         self.audio.set_volume(self.state.volume)
 
     def trigger_volume_down(self):
+        print("VOLUME -")
         self.state.volume = max(0.0, self.state.volume - VOLUME_STEP)
         self.audio.set_volume(self.state.volume)
 
