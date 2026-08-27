@@ -20,6 +20,12 @@ def build_arg_parser():
         help="How to pick the keyboard device: 'auto' detects it automatically, "
              "'interactive' lists available devices and lets you choose by number (default: auto)",
     )
+    parser.add_argument(
+        "--keymap",
+        type=str,
+        default=None,
+        help="Path to keymap.json file (default: searches src/keymap.json)",
+    )
     return parser
 
 
@@ -51,7 +57,11 @@ async def main():
 
     audio_manager = AudioManager(audio_folder, volume=game_state.volume)
     scene_manager = SceneManager(bulbs_config, audio_manager, game_state)
-    input_manager = InputManager(scene_manager, keyboard_select=args.keyboard_select)
+    input_manager = InputManager(
+        scene_manager,
+        keyboard_select=args.keyboard_select,
+        keymap_path=args.keymap or str(CODE_PATH / "keymap.json")
+    )
 
     # Report unreachable bulbs now, at boot, rather than failing silently the
     # first time a scene tries to use one. The app keeps running either way.

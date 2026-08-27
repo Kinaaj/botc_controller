@@ -1,4 +1,7 @@
 import asyncio
+import json
+import os
+from pathlib import Path
 
 from .SceneManager import SceneManager
 
@@ -20,12 +23,8 @@ except ImportError:
 
 
 class InputManager:
-    # Scene keys go through SceneManager's runner-backed trigger_* methods (so
-    # pressing one cancels-and-replaces whatever scene is currently active).
-    # Real keypad codes aren't known yet (no keypad_mapping_spec.md in this
-    # repo). g/e/v/w/c below are arbitrary test bindings, not the final spec
-    # mapping - replace them once the physical keypad layout is known.
-    SCENE_KEYS = {
+    # Default scene keys fallback
+    DEFAULT_SCENE_KEYS = {
         "u": ("Aktivuji NOC", "trigger_scene_night"),
         "y": ("Aktivuji DEN", "trigger_scene_day"),
         "b": ("Aktivuji POPRAVU", "trigger_effect_execution"),
@@ -41,25 +40,57 @@ class InputManager:
         "j": ("Man", "trigger_effect_scream_man"),
         "k": ("Female", "trigger_effect_scream_woman"),
         "m": ("Clocks", "trigger_effect_clocks"),
-        "g": ("Demon", "trigger_effect_demon")
+        "g": ("Demon", "trigger_effect_demon"),
     }
 
-    # Modifier keys call their SceneManager method directly and never touch
-    # SceneRunner, so they can't interrupt whatever scene is active.
-    # "equal"/"minus"/"kp..." are evdev's names for the real keypad's keys;
-    # the bare "="/"-" cover pynput's raw-char reporting (Windows debug only).
-    MODIFIER_KEYS = {
+    DEFAULT_MODIFIER_KEYS = {
         "d": "trigger_volume_up",
         "s": "trigger_volume_down",
         "minus": "trigger_volume_down",
         "kpminus": "trigger_volume_down",
     }
 
-    def __init__(self, scene_manager: SceneManager, keyboard_select="auto"):
+    # Class-level defaults for backward compatibility
+    SCENE_KEYS = DEFAULT_SCENE_KEYS
+    MODIFIER_KEYS = DEFAULT_MODIFIER_KEYS
+
+    def __init__(self, scene_manager: SceneManager, keyboard_select="auto", keymap_path=None):
         self.scene_manager: SceneManager = scene_manager
         self.running = True
         self.keyboard_select = keyboard_select
+        self.keymap_path = keymap_path
+        self.SCENE_KEYS = dict(self.DEFAULT_SCENE_KEYS)
+        self.MODIFIER_KEYS = dict(self.DEFAULT_MODIFIER_KEYS)
+        self._load_keymap()
         self._validate_bindings()
+
+    def _load_keymap(self):
+        candidate_paths = []
+        if self.keymap_path:
+            candidate_paths.append(Path(self.keymap_path))
+        else:
+            candidate_paths.append(Path(__file__).resolve().parent.parent / "keymap.json")
+            candidate_paths.append(Path("keymap.json"))
+            candidate_paths.append(Path(__file__).resolve().parent.parent.parent / "keymap.json")
+
+        for path in candidate_paths:
+            if path.is_file():
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    scene_keys = data.get("SCENE_KEYS")
+                    modifier_keys = data.get("MODIFIER_KEYS")
+                    if isinstance(scene_keys, dict) and isinstance(modifier_keys, dict):
+                        self.SCENE_KEYS = scene_keys
+                        self.MODIFIER_KEYS = modifier_keys
+                        print(f"[Input] Keymap loaded from {path}")
+                        return
+                    else:
+                        print(f"[Input] Warning: {path} has invalid format, using default key bindings.")
+                except Exception as e:
+                    print(f"[Input] Warning: Failed to load keymap from {path}: {e}")
+
+        print("[Input] No custom keymap found, using default key bindings.")
 
     def _validate_bindings(self):
         # Catches a typo'd or renamed trigger_* method at startup instead of
