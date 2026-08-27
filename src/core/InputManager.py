@@ -3,7 +3,10 @@ import json
 import os
 from pathlib import Path
 
-from .SceneManager import SceneManager
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .SceneManager import SceneManager
 
 try:
     import evdev
@@ -56,12 +59,12 @@ class InputManager:
 
     def __init__(
         self,
-        scene_manager: SceneManager,
+        scene_manager: "SceneManager",
         keyboard_select="auto",
         keymap_path=None,
         device_name=None,
     ):
-        self.scene_manager: SceneManager = scene_manager
+        self.scene_manager: "SceneManager" = scene_manager
         self.running = True
         self.keyboard_select = keyboard_select
         self.keymap_path = keymap_path

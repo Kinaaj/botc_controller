@@ -4,10 +4,10 @@ from pathlib import Path
 
 os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
 import yaml
-from core.InputManager import InputManager
-from core.SceneManager import SceneManager
-from core.AudioManager import AudioManager
 from core.GameState import GameState
+from core.AudioManager import AudioManager
+from core.SceneManager import SceneManager
+from core.InputManager import InputManager
 
 CODE_PATH = Path(__file__).parent.absolute()
 
