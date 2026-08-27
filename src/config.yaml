@@ -9,6 +9,8 @@ network:
       name: "Žárovka 3"
     - ip: "192.168.10.115"
       name: "Žárovka 4"
+    - ip: "192.168.10.111"
+      name: "Praha Byt"
 
 # --- NASTAVENÍ VSTUPU ---
 input:

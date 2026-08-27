@@ -2,6 +2,7 @@ import argparse
 import os
 from pathlib import Path
 
+os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
 import yaml
 from core.InputManager import InputManager
 from core.SceneManager import SceneManager
@@ -76,6 +77,9 @@ async def main():
     # Report unreachable bulbs now, at boot, rather than failing silently the
     # first time a scene tries to use one. The app keeps running either way.
     await scene_manager.lights.connect_all()
+
+    # Automatický hlídač na pozadí, který připojí žárovky ihned jakmile se zapnou vypínačem
+    asyncio.create_task(scene_manager.lights.start_background_watcher())
 
     await input_manager.start_listening()
 

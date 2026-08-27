@@ -119,17 +119,14 @@ class SceneManager:
         my_channel = self.audio.play_tracked_sfx(SFX.Day.Crowd, loops=-1, volume=self.state.volume)
         
         try:
-            print("Starting execution_crowd sound")
+            print("[Scene] Spouštím atmosféru davu k popravě...")
             await ctx.wait_forever()
         finally:
-            print("Fading out crowd over 0.6 seconds...")
-            # Zvuk se začne plynule tlumit, ale program hned pokračuje dál!
             self.audio.stop_tracked_sfx(SFX.Day.Crowd, fade_ms=80, specific_channel=my_channel, delay_ms=620)
 
     async def _scene_execution_behead(self, ctx: SceneContext):
-        print("Spousteni gilotiny")
+        print("[Scene] Spouštím gilotinu a krvavý záblesk...")
         self.audio.play_tracked_sfx(category_class=SFX.Day.Gilotina, volume=self.state.volume)
-        print("FLASH BLOOD")
         await self.lights.flash_blood(255, 0, 0, delay=600, default_bulb_state=self.state.default_bulb_state)
 
     def trigger_effect_clocks(self):

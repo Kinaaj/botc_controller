@@ -2,6 +2,7 @@ import asyncio
 import os
 import random
 
+os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
 import pygame
 
 from .AudioPaths import BGM
@@ -61,7 +62,8 @@ class AudioManager:
         self.audio_library = {}
         self._preload_library()
         self._preload_night_playlist()
-        print("[Audio] AudioManager úspěšně inicializován.")
+        total_tracks = sum(len(files) for files in self.audio_library.values())
+        print(f"[Audio] AudioManager připraven ({total_tracks} skladeb/efektů v {len(self.audio_library)} kategoriích, hlasitost: {int(self.current_volume*100)}%).")
     
     def _preload_library(self):
         """Projdede komplet celou složku audio a uloží si obsahy. BGM i SFX."""
@@ -73,11 +75,6 @@ class AudioManager:
                 if rel_path == ".":
                     rel_path = ""
                 self.audio_library[rel_path] = [os.path.join(root, f) for f in audio_files]
-        
-        print("===========")
-        for key, value in self.audio_library.items():
-            print(key, value)
-        print("===========")
     
     def _preload_night_playlist(self):
         self.night_playlist = self._get_audio_files(BGM.Night)
@@ -94,7 +91,6 @@ class AudioManager:
         Pouze najde a vrátí seznam dostupných cest k souborům (Nic nenačítá do RAM!).
         """
         folder_path = self._get_path_from_class(category_class) if not isinstance(category_class, str) else category_class.lower()
-        print(folder_path)
         valid_files = []
 
         if filename:
@@ -186,7 +182,6 @@ class AudioManager:
 
     def load_sfx(self, category_class, filename=None):
         """Využije univerzální hledání. Vybere jeden soubor a NAČTE HO DO RAM."""
-        print("LOADUJEME")
         valid_files = self._get_audio_files(category_class, filename)
         if not valid_files:
             print(f"[Audio] VAROVÁNÍ: Nenalezeny žádné SFX pro {category_class}")
