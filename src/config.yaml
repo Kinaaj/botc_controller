@@ -10,6 +10,12 @@ network:
     - ip: "192.168.10.115"
       name: "Žárovka 4"
 
+# --- NASTAVENÍ VSTUPU ---
+input:
+  # Název zařízení nebo část názvu klávesnice/keypadu (např. "Compx 2.4G Receiver").
+  # Ponech "auto" nebo prázdné pro automatickou detekci.
+  device_name: "Compx 2.4G Receiver"
+
 # --- NASTAVENÍ ZVUKU ---
 audio:
   folder: "audio/"

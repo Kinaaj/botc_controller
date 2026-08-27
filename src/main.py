@@ -26,6 +26,12 @@ def build_arg_parser():
         default=None,
         help="Path to keymap.json file (default: searches src/keymap.json)",
     )
+    parser.add_argument(
+        "--device-name",
+        type=str,
+        default=None,
+        help="Filter keyboard device by name (e.g. 'Compx 2.4G Receiver')",
+    )
     return parser
 
 
@@ -53,14 +59,18 @@ async def main():
         normal_temperature=normal_color
     )
 
-
+    configured_device_name = (
+        args.device_name
+        or config.get('input', {}).get('device_name')
+    )
 
     audio_manager = AudioManager(audio_folder, volume=game_state.volume)
     scene_manager = SceneManager(bulbs_config, audio_manager, game_state)
     input_manager = InputManager(
         scene_manager,
         keyboard_select=args.keyboard_select,
-        keymap_path=args.keymap or str(CODE_PATH / "keymap.json")
+        keymap_path=args.keymap or str(CODE_PATH / "keymap.json"),
+        device_name=configured_device_name,
     )
 
     # Report unreachable bulbs now, at boot, rather than failing silently the

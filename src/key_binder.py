@@ -28,17 +28,63 @@ MODIFIER_ACTIONS = [
     ("Snížit Hlasitost", "trigger_volume_down")
 ]
 
+def score_device(device):
+    try:
+        capabilities = device.capabilities(verbose=False)
+    except Exception:
+        return 0
+
+    if ecodes.EV_KEY not in capabilities:
+        return 0
+
+    key_codes = set(capabilities[ecodes.EV_KEY])
+    name_lower = device.name.lower()
+    if any(ign in name_lower for ign in ["mouse", "consumer", "system control", "jack"]):
+        return 0
+
+    keyboard_keys = [k for k in key_codes if k < 256]
+    score = len(keyboard_keys)
+
+    keypad_keys = {
+        ecodes.KEY_KP0, ecodes.KEY_KP1, ecodes.KEY_KP2, ecodes.KEY_KP3,
+        ecodes.KEY_KP4, ecodes.KEY_KP5, ecodes.KEY_KP6, ecodes.KEY_KP7,
+        ecodes.KEY_KP8, ecodes.KEY_KP9, ecodes.KEY_KPENTER, ecodes.KEY_NUMLOCK,
+        ecodes.KEY_KPPLUS, ecodes.KEY_KPMINUS, ecodes.KEY_KPASTERISK, ecodes.KEY_KPSLASH,
+    }
+    if key_codes & keypad_keys:
+        score += 200
+
+    standard_keys = {
+        ecodes.KEY_A, ecodes.KEY_B, ecodes.KEY_SPACE, ecodes.KEY_ENTER,
+        ecodes.KEY_1, ecodes.KEY_2, ecodes.KEY_ESC,
+    }
+    if key_codes & standard_keys:
+        score += 100
+
+    return score
+
+
 def get_keypad():
     devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
     if not devices:
         print("No input devices found. Try running with 'sudo'.")
         sys.exit(1)
 
-    print("=== Select your Keypad ===")
-    for i, device in enumerate(devices):
-        print(f"[{i}] {device.name}")
+    # Najdeme nejvhodnější kandidáty
+    scored = [(i, d, score_device(d)) for i, d in enumerate(devices)]
+    best_candidate = max(scored, key=lambda x: x[2]) if scored else None
+    default_idx = best_candidate[0] if best_candidate and best_candidate[2] > 0 else 0
 
-    choice = input("\nEnter the number of your keypad: ").strip()
+    print("=== Select your Keypad ===")
+    for i, device, score in scored:
+        hint = " [DOPORUČENO: Klávesnice/Keypad]" if score >= 50 else ""
+        print(f"[{i}] {device.name} ({device.path}){hint}")
+
+    prompt = f"\nEnter the number of your keypad [default: {default_idx}]: "
+    choice = input(prompt).strip()
+    if not choice:
+        return devices[default_idx]
+
     try:
         return devices[int(choice)]
     except (ValueError, IndexError):
@@ -88,6 +134,7 @@ def main():
 
     # Save to JSON file
     config = {
+        "DEVICE_NAME": device.name,
         "SCENE_KEYS": bound_scenes,
         "MODIFIER_KEYS": bound_modifiers
     }
@@ -97,7 +144,7 @@ def main():
         json.dump(config, f, indent=4, ensure_ascii=False)
 
     print("="*50)
-    print(f"SUCCESS! Keys have been saved to '{keymap_path}'.")
+    print(f"SUCCESS! Keys and device '{device.name}' saved to '{keymap_path}'.")
     print("="*50)
 
 if __name__ == "__main__":

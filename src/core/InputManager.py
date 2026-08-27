@@ -54,11 +54,18 @@ class InputManager:
     SCENE_KEYS = DEFAULT_SCENE_KEYS
     MODIFIER_KEYS = DEFAULT_MODIFIER_KEYS
 
-    def __init__(self, scene_manager: SceneManager, keyboard_select="auto", keymap_path=None):
+    def __init__(
+        self,
+        scene_manager: SceneManager,
+        keyboard_select="auto",
+        keymap_path=None,
+        device_name=None,
+    ):
         self.scene_manager: SceneManager = scene_manager
         self.running = True
         self.keyboard_select = keyboard_select
         self.keymap_path = keymap_path
+        self.device_name = device_name
         self.SCENE_KEYS = dict(self.DEFAULT_SCENE_KEYS)
         self.MODIFIER_KEYS = dict(self.DEFAULT_MODIFIER_KEYS)
         self._load_keymap()
@@ -80,6 +87,8 @@ class InputManager:
                         data = json.load(f)
                     scene_keys = data.get("SCENE_KEYS")
                     modifier_keys = data.get("MODIFIER_KEYS")
+                    if not self.device_name and data.get("DEVICE_NAME"):
+                        self.device_name = data.get("DEVICE_NAME")
                     if isinstance(scene_keys, dict) and isinstance(modifier_keys, dict):
                         self.SCENE_KEYS = scene_keys
                         self.MODIFIER_KEYS = modifier_keys
@@ -103,6 +112,53 @@ class InputManager:
                 f"SceneManager is missing methods referenced in the key table: {missing}"
             )
 
+    @staticmethod
+    def _score_device_capabilities(device):
+        """
+        Hodnotí zařízení podle toho, jak moc odpovídá reálné klávesnici / numerickému bloku.
+        Ignoruje myši, HDMI jacky, systémová/multimediální tlačítka s 1-2 klávesami.
+        """
+        if not HAS_EVDEV:
+            return 0
+        try:
+            capabilities = device.capabilities(verbose=False)
+        except Exception:
+            return 0
+
+        if ecodes.EV_KEY not in capabilities:
+            return 0
+
+        key_codes = set(capabilities[ecodes.EV_KEY])
+
+        # Vyloučíme zařízení, která mají v názvu explicitně mouse/jack/system/consumer
+        name_lower = device.name.lower()
+        if any(ign in name_lower for ign in ["mouse", "consumer", "system control", "jack"]):
+            return 0
+
+        # Klávesy v evdev standardu (pod 256 jsou klasické klávesové kódy)
+        keyboard_keys = [k for k in key_codes if k < 256]
+        score = len(keyboard_keys)
+
+        # Numerické klávesy (KP0-KP9, KPENTER, NUMLOCK, atd.)
+        keypad_keys = {
+            ecodes.KEY_KP0, ecodes.KEY_KP1, ecodes.KEY_KP2, ecodes.KEY_KP3,
+            ecodes.KEY_KP4, ecodes.KEY_KP5, ecodes.KEY_KP6, ecodes.KEY_KP7,
+            ecodes.KEY_KP8, ecodes.KEY_KP9, ecodes.KEY_KPENTER, ecodes.KEY_NUMLOCK,
+            ecodes.KEY_KPPLUS, ecodes.KEY_KPMINUS, ecodes.KEY_KPASTERISK, ecodes.KEY_KPSLASH,
+        }
+        if key_codes & keypad_keys:
+            score += 200
+
+        # Běžné klávesy psacího stroje
+        standard_keys = {
+            ecodes.KEY_A, ecodes.KEY_B, ecodes.KEY_SPACE, ecodes.KEY_ENTER,
+            ecodes.KEY_1, ecodes.KEY_2, ecodes.KEY_ESC,
+        }
+        if key_codes & standard_keys:
+            score += 100
+
+        return score
+
     def _select_keyboard_interactive(self):
         """Vypíše dostupná evdev zařízení a nechá uživatele vybrat jedno číslem."""
         if not HAS_EVDEV:
@@ -117,7 +173,9 @@ class InputManager:
 
         print("[Input] Dostupná zařízení:")
         for i, device in enumerate(devices):
-            print(f"  [{i}] {device.name} ({device.path})")
+            score = self._score_device_capabilities(device)
+            hint = " [DOPORUČENO: Klávesnice/Keypad]" if score >= 50 else ""
+            print(f"  [{i}] {device.name} ({device.path}){hint}")
 
         while True:
             choice = input("[Input] Zadej číslo klávesnice, kterou chceš použít: ").strip()
@@ -132,18 +190,29 @@ class InputManager:
             return None
 
         devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
+        if not devices:
+            return None
 
-        # 1. Pokus: Hledáme zařízení, které má v názvu explicitně "keyboard"
-        for device in devices:
-            if "keyboard" in device.name.lower():
-                return device
+        # 1. Pokud je zadán specifický název (např. "Compx 2.4G Receiver")
+        target_name = (self.device_name or "").strip().lower()
+        if target_name and target_name != "auto":
+            matching = [d for d in devices if target_name in d.name.lower()]
+            if matching:
+                scored = [(d, self._score_device_capabilities(d)) for d in matching]
+                scored.sort(key=lambda x: x[1], reverse=True)
+                best_device, best_score = scored[0]
+                if best_score > 0:
+                    return best_device
+                # Pokud žádný neměl score > 0, vrátíme alespoň první matching
+                return matching[0]
 
-        # 2. Pokus: Pokud nic nenašel (některé integrované ntb klávesnice se jmenují jinak),
-        # vezme první dostupné zařízení, které podporuje klávesy
-        for device in devices:
-            capabilities = device.capabilities()
-            if ecodes.EV_KEY in capabilities:
-                return device
+        # 2. Automatické vyhledání: vybereme zařízení s nejvyšším keyboard score
+        scored_devices = [(d, self._score_device_capabilities(d)) for d in devices]
+        scored_devices.sort(key=lambda x: x[1], reverse=True)
+
+        best_device, best_score = scored_devices[0]
+        if best_score > 0:
+            return best_device
 
         return None
 
@@ -153,48 +222,55 @@ class InputManager:
             await self._start_listening_pynput()
             return
 
-        if self.keyboard_select == "interactive":
-            keyboard = self._select_keyboard_interactive()
-        else:
-            keyboard = self._find_keyboard()
+        while self.running:
+            if self.keyboard_select == "interactive":
+                keyboard = self._select_keyboard_interactive()
+            else:
+                keyboard = self._find_keyboard()
 
-        if not keyboard:
-            print("[Input] KRITICKÁ CHYBA: Nepodařilo se najít žádnou klávesnici!")
+            if not keyboard:
+                print(
+                    "[Input] Klávesnice nenalezena, čekám 3 sekundy a zkouším znovu... "
+                    "(Zkontroluj připojení USB přijímače a práva ke čtení /dev/input)"
+                )
+                await asyncio.sleep(3)
+                continue
+
             print(
-                "Zkontroluj práva ke čtení z /dev/input - přidej uživatele do skupiny "
-                "'input' (sudo usermod -aG input $USER) a přihlas se znovu."
+                f"[Input] Úspěšně připojeno ke klávesnici: {keyboard.name} ({keyboard.path})"
             )
-            return
+            print("[Input] Naslouchám... Stiskni 'Q' pro ukončení.")
 
-        print(
-            f"[Input] Úspěšně připojeno ke klávesnici: {keyboard.name} ({keyboard.path})"
-        )
-        print("[Input] Naslouchám... Stiskni 'Q' pro ukončení.")
+            try:
+                # Asynchronní čtení událostí z kernelu
+                async for event in keyboard.async_read_loop():
+                    if not self.running:
+                        return
 
-        try:
-            # Asynchronní čtení událostí z kernelu
-            async for event in keyboard.async_read_loop():
-                if not self.running:
-                    break
+                    # EV_KEY (klávesa) a hodnota 1 (stisknuto)
+                    if event.type == ecodes.EV_KEY and event.value == 1:
+                        key_name = evdev.ecodes.KEY.get(event.code, "UNKNOWN")
+                        if isinstance(key_name, list):
+                            key_name = key_name[0]
 
-                # Zajímá nás pouze typ události EV_KEY (klávesa) a hodnota 1 (stisknuto)
-                # Hodnota 0 je uvolnění klávesy, hodnota 2 je držení klávesy
-                if event.type == ecodes.EV_KEY and event.value == 1:
-                    key_name = evdev.ecodes.KEY[event.code]
+                        # Převedeme název (např. "KEY_N") na jednoduchý malý znak ("n")
+                        key = key_name.replace("KEY_", "").lower()
 
-                    # Převedeme název (např. "KEY_N") na jednoduchý malý znak ("n")
-                    key = key_name.replace("KEY_", "").lower()
+                        await self._dispatch_key(key)
 
-                    await self._dispatch_key(key)
-
-        except PermissionError:
-            print(
-                "[Input] CHYBA: Nedostatečná práva pro čtení z klávesnice. "
-                "Přidej uživatele do skupiny 'input' (sudo usermod -aG input $USER) "
-                "a přihlas se znovu."
-            )
-        except Exception as e:
-            print(f"[Input] Neočekávaná chyba: {e}")
+            except PermissionError:
+                print(
+                    "[Input] CHYBA: Nedostatečná práva pro čtení z klávesnice. "
+                    "Přidej uživatele do skupiny 'input' (sudo usermod -aG input $USER) "
+                    "a přihlas se znovu."
+                )
+                await asyncio.sleep(5)
+            except OSError as e:
+                print(f"[Input] Klávesnice odpojena ({e}), pokusím se znovu připojit...")
+                await asyncio.sleep(2)
+            except Exception as e:
+                print(f"[Input] Neočekávaná chyba: {e}")
+                await asyncio.sleep(2)
 
     async def _start_listening_pynput(self):
         """
