@@ -78,9 +78,6 @@ async def main():
     # first time a scene tries to use one. The app keeps running either way.
     await scene_manager.lights.connect_all()
 
-    # Automatický hlídač na pozadí, který připojí žárovky ihned jakmile se zapnou vypínačem
-    asyncio.create_task(scene_manager.lights.start_background_watcher())
-
     await input_manager.start_listening()
 
 
