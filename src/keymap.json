@@ -1,0 +1,73 @@
+{
+    "DEVICE_NAME": "Compx 2.4G Receiver",
+    "SCENE_KEYS": {
+        "numlock": [
+            "Aktivuji NOC",
+            "trigger_scene_night"
+        ],
+        "kpslash": [
+            "Aktivuji DEN",
+            "trigger_scene_day"
+        ],
+        "kpasterisk": [
+            "Aktivuji VEČER",
+            "trigger_scene_evening"
+        ],
+        "kp3": [
+            "Aktivuji VÝHRU ZLA",
+            "trigger_scene_evil_won"
+        ],
+        "kp2": [
+            "Aktivuji VÝHRU DOBRA",
+            "trigger_scene_good_won"
+        ],
+        "kp1": [
+            "Aktivuji LOSOVANI",
+            "trigger_scene_drawing"
+        ],
+        "kp8": [
+            "Aktivuji POPRAVU",
+            "trigger_effect_execution"
+        ],
+        "kp9": [
+            "Aktivuji BLESK",
+            "trigger_sfx_thunder"
+        ],
+        "kp0": [
+            "Prepinam žárovky",
+            "trigger_toggle_lights"
+        ],
+        "kpdot": [
+            "Měním barvu zla",
+            "trigger_set_evil_color"
+        ],
+        "kpenter": [
+            "STOP zvuku",
+            "trigger_stop_audio"
+        ],
+        "kp7": [
+            "Jail",
+            "trigger_effect_jail"
+        ],
+        "kp5": [
+            "Man",
+            "trigger_effect_scream_man"
+        ],
+        "kp6": [
+            "Female",
+            "trigger_effect_scream_woman"
+        ],
+        "backspace": [
+            "Clocks",
+            "trigger_effect_clocks"
+        ],
+        "kp4": [
+            "Demon",
+            "trigger_effect_demon"
+        ]
+    },
+    "MODIFIER_KEYS": {
+        "kpminus": "trigger_volume_up",
+        "kpplus": "trigger_volume_down"
+    }
+}

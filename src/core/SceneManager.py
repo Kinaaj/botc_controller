@@ -57,11 +57,12 @@ class SceneManager:
         self.state.default_bulb_state.state_type = BulbStateType.RGB
 
         fade_off_seconds = 2
-        fade_up_seconds = 4
+        fade_up_seconds = 2
         try:
             await self.lights.fade_off(seconds=fade_off_seconds)
-            await ctx.sleep(fade_off_seconds)  # let bulbs actually go dark first
-
+            await ctx.sleep(0.1)  # let bulbs actually go dark first
+            r, g, b = self.state.evil_color
+            await self.lights.fade_up_to_rgb(r, g, b, seconds=fade_up_seconds)
             # 1. Pustíme ambient a random zvuk hned na začátku (tyto funkce neblokují běh programu)
             if random.random() < 0.10:
                 print("[Scene] Pouštím náhodný noční efekt...")
@@ -71,10 +72,8 @@ class SceneManager:
             # 2. Nyní pustíme zvony. Program se zde zastaví a počká, než dohraje intro,
             #    ale ambient a random efekty už mezitím vesele hrají na pozadí!
             await self.audio.start_night_sequence(intro_sfx_list=[SFX.Night.Bells], bgm_class=BGM.Night)
-            
-            r, g, b = self.state.evil_color
-            await self.lights.fade_up_to_rgb(r, g, b, seconds=fade_up_seconds)
             await ctx.wait_forever()  # Night stays active until another scene interrupts it
+            
         finally:
             self.audio.stop_permanent_ambient()
             self.audio.stop_night_sequence()
@@ -94,9 +93,9 @@ class SceneManager:
 
     async def _scene_evening(self, ctx: SceneContext):
         self.state.default_bulb_state.state_type = BulbStateType.TEMPERATURE
-        fade_up_seconds = 4
-        await self.lights.fade_off(seconds=1)
-        await ctx.sleep(1)
+        fade_up_seconds = 2
+        await self.lights.fade_off(seconds=0.2)
+        await ctx.sleep(0.1)
         await self.lights.fade_up_to_temperature(self.state.normal_temperature, seconds=fade_up_seconds)
 
     def trigger_effect_clock(self):
